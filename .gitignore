@@ -24,3 +24,7 @@ charon_oauth2-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+/.elixir_ls
+/.vscode/*
+!/.vscode/*_example.json
