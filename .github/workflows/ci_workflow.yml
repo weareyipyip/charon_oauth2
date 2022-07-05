@@ -9,6 +9,7 @@ jobs:
     name: Elixir ${{ matrix.elixir }} OTP ${{ matrix.otp }}
     env:
       MIX_ENV: test
+      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
 
     services:
       redis:
@@ -23,6 +24,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: Install Charon deploy key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ secrets.CHARON_DEPLOY_KEY }}"
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp }}

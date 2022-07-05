@@ -5,7 +5,7 @@ defmodule CharonOauth2.MixProject do
     [
       app: :charon_oauth2,
       version: "0.0.0+development",
-      elixir: "~> 1.13",
+      elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env())
