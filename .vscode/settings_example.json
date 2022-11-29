@@ -2,5 +2,6 @@
   "files.exclude": {
     "deps/**": true,
     "_build/**": true
-  }
+  },
+  "elixirLS.mixEnv": "test"
 }

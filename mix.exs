@@ -23,7 +23,10 @@ defmodule CharonOauth2.MixProject do
   defp deps do
     [
       {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false},
-      {:charon, git: "git@github.com:weareyipyip/charon.git"}
+      {:ecto, "~> 3.0"},
+      {:charon, "~> 1.3"},
+      {:ecto_sql, "~> 3.6", only: [:test]},
+      {:postgrex, ">= 0.0.0", only: [:test]}
     ]
   end
 
