@@ -1,6 +1,6 @@
-defmodule CharonOauth2.Models.ClientsTest do
+defmodule CharonOauth2.Models.AuthorizationsTest do
   use CharonOauth2.DataCase
-  alias CharonOauth2.Models.{Clients, Client}
+  alias CharonOauth2.Models.{Authorizations, Authorization}
   import CharonOauth2.Test.TestSeeds
 
   @config Charon.Config.from_enum(
@@ -10,5 +10,5 @@ defmodule CharonOauth2.Models.ClientsTest do
             }
           )
 
-  doctest Clients
+  doctest Authorizations
 end

@@ -28,7 +28,7 @@ defmodule CharonOauth2.Test.Repo.Migrations.AddCharonOauth2Models do
       timestamps(type: :utc_datetime)
     end
 
-    create unique_index("charon_oauth2_authorizations", [:client_id, :resource_owner_id])
+    create unique_index("charon_oauth2_authorizations", [:client_id, :resource_owner_id], name: "charon_oauth2_authorizations_uniq_client_res_owner_index")
     create index("charon_oauth2_authorizations", [:resource_owner_id])
 
     create table("charon_oauth2_grants") do

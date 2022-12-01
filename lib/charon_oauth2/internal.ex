@@ -12,6 +12,10 @@ defmodule CharonOauth2.Internal do
   end
 
   @doc false
+  @spec to_set(Ecto.Changeset.t(), atom) :: Ecto.Changeset.t()
+  def to_set(changeset, field), do: Changeset.update_change(changeset, field, &Enum.uniq/1)
+
+  @doc false
   def get_module_config(%{optional_modules: %{CharonOauth2 => config}}), do: config
 
   @doc false
@@ -19,6 +23,7 @@ defmodule CharonOauth2.Internal do
     bits |> div(8) |> :crypto.strong_rand_bytes() |> Base.url_encode64()
   end
 
+  @doc false
   def get_and_do(getter, then_do) do
     fn ->
       with thing = %{} <- getter.() do

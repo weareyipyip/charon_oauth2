@@ -1,6 +1,6 @@
 defmodule CharonOauth2.Models.Clients do
   @moduledoc """
-  Context to manage oauth2_clients
+  Context to manage clients
   """
   require Logger
 
@@ -9,14 +9,21 @@ defmodule CharonOauth2.Models.Clients do
   @repo Application.compile_env!(:charon_oauth2, :repo)
 
   @doc """
-  Get a single oauth2_client by one or more clauses, optionally with preloads.
+  Get a single client by one or more clauses, optionally with preloads.
   Returns nil if Client cannot be found.
+
+  Supported preloads: `#{inspect(Client.supported_preloads())}`
 
   ## Doctests
 
       iex> client = insert_test_client(@config)
-      iex> ^client = Clients.get_by(id: client.id)
+      iex> %Client{} = Clients.get_by(id: client.id)
       iex> nil = Clients.get_by(id: Ecto.UUID.generate())
+
+      # preloads things
+      iex> client = insert_test_client(@config)
+      iex> insert_test_authorization(@config, client_id: client.id)
+      iex> %{owner: %{id: _}, authorizations: [_]} = Clients.get_by([id: client.id], Client.supported_preloads)
   """
   @spec get_by(keyword | map, [atom]) :: Client.t() | nil
   def get_by(clauses, preloads \\ []) do
@@ -25,6 +32,8 @@ defmodule CharonOauth2.Models.Clients do
 
   @doc """
   Get a list of all oauth2 clients.
+
+  Supported preloads: `#{inspect(Client.supported_preloads())}`
 
   ## Doctests
 
@@ -37,14 +46,18 @@ defmodule CharonOauth2.Models.Clients do
   end
 
   @doc """
-  Insert a new oauth2_client
+  Insert a new client.
 
   ## Examples / doctests
 
-      # succesfully creates an oauth2_client with a secret
+      # succesfully creates a client with a secret
       iex> user = insert_test_user()
       iex> {:ok, client} = %{owner_id: user.id} |> client_params() |> Clients.insert(@config)
       iex> %{secret: <<_::binary>>} = client
+
+      # owner must exist
+      iex> %{owner_id: -1} |> client_params() |> Clients.insert(@config) |> errors_on()
+      %{owner: ["does not exist"]}
   """
   @spec insert(map, Charon.Config.t()) :: {:ok, Client.t()} | {:error, Changeset.t()}
   def insert(params, config) do
@@ -52,7 +65,7 @@ defmodule CharonOauth2.Models.Clients do
   end
 
   @doc """
-  Update an oauth2_client.
+  Update a client.
 
   ## Examples / doctests
 
@@ -73,7 +86,7 @@ defmodule CharonOauth2.Models.Clients do
 
       # id and owner id can't be updated
       iex> %{id: id, owner_id: owner_id} = insert_test_client(@config)
-      iex> {:ok, %{id: ^id, owner_id: ^owner_id}} = Clients.update([id: id], %{id: Ecto.UUID.generate(), owner_id: insert_test_user().id}, @config)
+      iex> {:ok, %{id: ^id, owner_id: ^owner_id}} = Clients.update([id: id], %{id: Ecto.UUID.generate(), owner_id: -1}, @config)
   """
   @spec update(Client.t() | keyword(), map, Charon.Config.t()) ::
           {:ok, Client.t()} | {:error, Changeset.t()}
@@ -86,14 +99,14 @@ defmodule CharonOauth2.Models.Clients do
   end
 
   @doc """
-  Delete an oauth2_client.
+  Delete a client.
 
   ## Examples / doctests
 
-      # oauth2_client must exist
+      # client must exist
       iex> {:error, :not_found} = Clients.delete(id: Ecto.UUID.generate())
 
-      # succesfully deletes an oauth2_client
+      # succesfully deletes a client
       iex> client = insert_test_client(@config)
       iex> {:ok, _} = Clients.delete([id: client.id])
       iex> {:error, :not_found} = Clients.delete([id: client.id])
