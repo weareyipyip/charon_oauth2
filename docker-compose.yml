@@ -14,6 +14,7 @@ services:
     entrypoint: tail -f /dev/null
     environment:
       REDIS_HOSTNAME: redis
+      POSTGRES_HOSTNAME: postgres
 
   redis:
     image: redis:7-alpine
