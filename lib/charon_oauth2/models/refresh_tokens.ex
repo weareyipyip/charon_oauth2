@@ -6,6 +6,7 @@ defmodule CharonOauth2.Models.RefreshTokens do
 
   alias CharonOauth2.Internal
   alias CharonOauth2.Models.RefreshToken
+  import Ecto.Query, only: [from: 2]
   @repo Application.compile_env!(:charon_oauth2, :repo)
 
   @doc """
@@ -50,40 +51,20 @@ defmodule CharonOauth2.Models.RefreshTokens do
   ## Examples / doctests
 
       # succesfully creates a refresh_token
-      iex> {:ok, _} = refresh_token_params(@config) |> RefreshTokens.insert()
+      iex> {:ok, _} = refresh_token_params(@config) |> RefreshTokens.insert(@config)
 
-      iex> RefreshTokens.insert(%{}) |> errors_on()
-      %{authorization_id: ["can't be blank"], expires_at: ["can't be blank"]}
+      iex> RefreshTokens.insert(%{}, @config) |> errors_on()
+      %{authorization_id: ["can't be blank"]}
 
       # authorization must exist
-      iex> refresh_token_params(@config, authorization_id: -1) |> RefreshTokens.insert() |> errors_on()
+      iex> refresh_token_params(@config, authorization_id: -1) |> RefreshTokens.insert(@config) |> errors_on()
       %{authorization: ["does not exist"]}
   """
-  @spec insert(map) :: {:ok, RefreshToken.t()} | {:error, Changeset.t()}
-  def insert(params) do
+  @spec insert(map, Charon.Config.t()) :: {:ok, RefreshToken.t()} | {:error, Changeset.t()}
+  def insert(params, config) do
     params
-    |> RefreshToken.insert_only_changeset()
-    |> RefreshToken.changeset(params)
+    |> RefreshToken.insert_only_changeset(config)
     |> @repo.insert()
-  end
-
-  @doc """
-  Update a refresh_token.
-
-  ## Examples / doctests
-
-      # updates things
-      iex> token = insert_test_refresh_token(@config)
-      iex> {:ok, %{expires_at: ~U[2000-01-01 11:00:00Z]}} = RefreshTokens.update(token, %{expires_at: ~U[2000-01-01 11:00:00Z]})
-  """
-  @spec update(RefreshToken.t() | keyword(), map) ::
-          {:ok, RefreshToken.t()} | {:error, Changeset.t()}
-  def update(refresh_token = %RefreshToken{}, params) do
-    refresh_token |> RefreshToken.changeset(params) |> @repo.update()
-  end
-
-  def update(clauses, params) do
-    Internal.get_and_do(fn -> get_by(clauses) end, &update(&1, params))
   end
 
   @doc """
@@ -104,5 +85,25 @@ defmodule CharonOauth2.Models.RefreshTokens do
 
   def delete(clauses) do
     Internal.get_and_do(fn -> get_by(clauses) end, &delete/1)
+  end
+
+  @doc """
+  Delete all oauth2_refresh_tokens older than their `expires_at` timestamp.
+
+  ## Examples
+
+      iex> valid = insert_test_refresh_token(@config)
+      iex> expired = insert_test_refresh_token(@config)
+      iex> past = DateTime.from_unix!(System.os_time(:second) - 10)
+      iex> from(t in RefreshToken, where: t.id == ^expired.id) |> Repo.update_all(set: [expires_at: past])
+      iex> RefreshTokens.delete_expired()
+      iex> valid_id = valid.id
+      iex> [%{id: ^valid_id}] = RefreshTokens.all()
+  """
+  @spec delete_expired :: {integer, nil}
+  def delete_expired() do
+    from(t in RefreshToken, where: t.expires_at < ago(0, "second"))
+    |> @repo.delete_all()
+    |> tap(fn {n, _} -> Logger.info("Deleted #{n} expired oauth2_refresh_tokens") end)
   end
 end

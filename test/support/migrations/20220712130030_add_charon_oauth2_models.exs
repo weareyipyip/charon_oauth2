@@ -36,6 +36,7 @@ defmodule CharonOauth2.Test.Repo.Migrations.AddCharonOauth2Models do
       add(:code, :text)
       add(:redirect_uri, :text)
       add(:type, :text, null: false)
+      add(:expires_at, :utc_datetime, null: false)
 
       add(:authorization_id, references("charon_oauth2_authorizations", on_delete: :delete_all),
         null: false

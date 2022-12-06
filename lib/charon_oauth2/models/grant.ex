@@ -21,6 +21,7 @@ defmodule CharonOauth2.Models.Grant do
     field(:code, :string, autogenerate: {Internal, :random_string, [256]})
     field(:redirect_uri, :string)
     field(:type, :string)
+    field(:expires_at, :utc_datetime)
 
     belongs_to(:authorization, Authorization)
 
@@ -28,13 +29,16 @@ defmodule CharonOauth2.Models.Grant do
   end
 
   @doc """
-  Basic changeset.
+  Insert-only changeset - some things (should) never change.
   """
-  @spec changeset(__MODULE__.t() | Changeset.t(), map()) :: Changeset.t()
-  def changeset(struct_or_cs \\ %__MODULE__{}, params) do
+  @spec insert_only_changeset(__MODULE__.t() | Changeset.t(), map(), Charon.Config.t()) ::
+          Changeset.t()
+  def insert_only_changeset(struct_or_cs \\ %__MODULE__{}, params, config) do
+    ttl = Internal.get_module_config(config).grant_ttl
+
     struct_or_cs
-    |> cast(params, [:redirect_uri, :type])
-    |> validate_required([:redirect_uri, :type])
+    |> cast(params, [:redirect_uri, :type, :authorization_id])
+    |> validate_required([:redirect_uri, :type, :authorization_id])
     |> validate_inclusion(:type, @types, message: "must be one of: #{Enum.join(@types, ", ")}")
     |> prepare_changes(fn cs = %{data: data} ->
       redirect_uri = get_field(cs, :redirect_uri)
@@ -53,17 +57,8 @@ defmodule CharonOauth2.Models.Grant do
       end
     end)
     |> unique_constraint(:code)
-  end
-
-  @doc """
-  Insert-only changeset - some things (should) never change.
-  """
-  @spec insert_only_changeset(__MODULE__.t() | Changeset.t(), map()) :: Changeset.t()
-  def insert_only_changeset(struct_or_cs \\ %__MODULE__{}, params) do
-    struct_or_cs
-    |> cast(params, [:authorization_id])
-    |> validate_required([:authorization_id])
     |> assoc_constraint(:authorization)
+    |> put_change(:expires_at, DateTime.from_unix!(ttl + Charon.Internal.now()))
   end
 
   ###########

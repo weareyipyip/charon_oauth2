@@ -12,9 +12,9 @@ defmodule CharonOauth2.Config do
       )
   """
   @enforce_keys [:scopes]
-  defstruct [:scopes]
+  defstruct [:scopes, grant_ttl: 15 * 60]
 
-  @type t :: %__MODULE__{scopes: [String.t()]}
+  @type t :: %__MODULE__{scopes: [String.t()], grant_ttl: pos_integer()}
 
   @doc """
   Build config struct from enumerable (useful for passing in application environment).

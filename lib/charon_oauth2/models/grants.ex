@@ -4,8 +4,9 @@ defmodule CharonOauth2.Models.Grants do
   """
   require Logger
 
-  alias CharonOauth2.Internal
+  alias CharonOauth2.{Internal}
   alias CharonOauth2.Models.Grant
+  import Ecto.Query, only: [from: 2]
   @repo Application.compile_env!(:charon_oauth2, :repo)
 
   @doc """
@@ -50,43 +51,28 @@ defmodule CharonOauth2.Models.Grants do
   ## Examples / doctests
 
       # succesfully creates a grant
-      iex> {:ok, _} = grant_params(@config) |> Grants.insert()
+      iex> {:ok, _} = grant_params(@config) |> Grants.insert(@config)
 
-      iex> Grants.insert(%{}) |> errors_on()
+      iex> Grants.insert(%{}, @config) |> errors_on()
       %{authorization_id: ["can't be blank"], redirect_uri: ["can't be blank"], type: ["can't be blank"]}
 
       # authorization must exist
-      iex> grant_params(@config, authorization_id: -1) |> Grants.insert() |> errors_on()
+      iex> grant_params(@config, authorization_id: -1) |> Grants.insert(@config) |> errors_on()
       %{authorization: ["does not exist"]}
 
       # type must be one of client grant_type's
       iex> client = insert_test_client(@config, grant_types: ~w(refresh_token))
       iex> authorization = insert_test_authorization(@config, client_id: client.id)
-      iex> grant_params(@config, authorization_id: authorization.id) |> Grants.insert() |> errors_on()
+      iex> grant_params(@config, authorization_id: authorization.id) |> Grants.insert(@config) |> errors_on()
       %{type: ["not supported by client"]}
-  """
-  @spec insert(map) :: {:ok, Grant.t()} | {:error, Changeset.t()}
-  def insert(params) do
-    params |> Grant.insert_only_changeset() |> Grant.changeset(params) |> @repo.insert()
-  end
-
-  @doc """
-  Update a grant.
-
-  ## Examples / doctests
 
       # redirect_uri must be one of client redirect_uri's
-      iex> insert_test_grant(@config) |> Grants.update(%{redirect_uri: "https://boom.com"}) |> errors_on()
+      iex> grant_params(@config, redirect_uri: "https://boom") |> Grants.insert(@config) |> errors_on()
       %{redirect_uri: ["does not match client"]}
   """
-  @spec update(Grant.t() | keyword(), map) ::
-          {:ok, Grant.t()} | {:error, Changeset.t()}
-  def update(grant = %Grant{}, params) do
-    grant |> Grant.changeset(params) |> @repo.update()
-  end
-
-  def update(clauses, params) do
-    Internal.get_and_do(fn -> get_by(clauses) end, &update(&1, params))
+  @spec insert(map, Charon.Config.t()) :: {:ok, Grant.t()} | {:error, Changeset.t()}
+  def insert(params, config) do
+    params |> Grant.insert_only_changeset(config) |> @repo.insert()
   end
 
   @doc """
@@ -107,5 +93,25 @@ defmodule CharonOauth2.Models.Grants do
 
   def delete(clauses) do
     Internal.get_and_do(fn -> get_by(clauses) end, &delete/1)
+  end
+
+  @doc """
+  Delete all grants older than the configured `grant_ttl`.
+
+  ## Examples / doctests
+
+      iex> valid = insert_test_grant(@config)
+      iex> expired = insert_test_grant(@config)
+      iex> past = DateTime.from_unix!(System.os_time(:second) - 10)
+      iex> from(t in Grant, where: t.id == ^expired.id) |> Repo.update_all(set: [expires_at: past])
+      iex> Grants.delete_expired()
+      iex> valid_id = valid.id
+      iex> [%{id: ^valid_id}] = Grants.all()
+  """
+  @spec delete_expired() :: {integer, nil}
+  def delete_expired() do
+    from(g in Grant, where: g.expires_at < ago(0, "second"))
+    |> @repo.delete_all()
+    |> tap(fn {n, _} -> Logger.info("Deleted #{n} expired oauth2_grants") end)
   end
 end

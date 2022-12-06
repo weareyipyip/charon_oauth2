@@ -48,10 +48,10 @@ defmodule CharonOauth2.Seeds do
   end
 
   def insert_test_grant(config, overrides \\ []) do
-    grant_params(config, overrides) |> Grants.insert() |> bang!()
+    grant_params(config, overrides) |> Grants.insert(config) |> bang!()
   end
 
-  @default_refresh_token_params %{expires_at: ~U[2150-12-30 10:00:00Z]}
+  @default_refresh_token_params %{}
 
   def refresh_token_params(config, overrides \\ []) do
     @default_refresh_token_params
@@ -60,7 +60,7 @@ defmodule CharonOauth2.Seeds do
   end
 
   def insert_test_refresh_token(config, overrides \\ []) do
-    refresh_token_params(config, overrides) |> RefreshTokens.insert() |> bang!()
+    refresh_token_params(config, overrides) |> RefreshTokens.insert(config) |> bang!()
   end
 
   ###########

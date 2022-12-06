@@ -20,25 +20,19 @@ defmodule CharonOauth2.Models.RefreshToken do
   end
 
   @doc """
-  Basic changeset.
-  """
-  @spec changeset(__MODULE__.t() | Changeset.t(), map()) :: Changeset.t()
-  def changeset(struct_or_cs \\ %__MODULE__{}, params) do
-    struct_or_cs
-    |> cast(params, [:expires_at])
-    |> validate_required([:expires_at])
-  end
-
-  @doc """
   Insert-only changeset - some things (should) never change.
   """
-  @spec insert_only_changeset(__MODULE__.t() | Changeset.t(), map()) :: Changeset.t()
-  def insert_only_changeset(struct_or_cs \\ %__MODULE__{}, params) do
+  @spec insert_only_changeset(__MODULE__.t() | Changeset.t(), map(), Charon.Config.t()) ::
+          Changeset.t()
+  def insert_only_changeset(struct_or_cs \\ %__MODULE__{}, params, config) do
+    ttl = config.refresh_token_ttl
+
     struct_or_cs
     |> cast(params, [:authorization_id, :id])
     |> validate_required([:authorization_id])
     |> assoc_constraint(:authorization)
     |> unique_constraint(:id, name: "charon_oauth2_refresh_tokens_pkey")
+    |> put_change(:expires_at, DateTime.from_unix!(ttl + Charon.Internal.now()))
   end
 
   ###########
