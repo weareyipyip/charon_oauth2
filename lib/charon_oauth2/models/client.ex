@@ -115,11 +115,14 @@ defmodule CharonOauth2.Models.Client do
 
       :authorizations ->
         Query.preload(query, :authorizations)
+
+      :authorizations_grants ->
+        Query.preload(query, authorizations: [:grants])
     end
   end
 
   def preload(query, list), do: Enum.reduce(list, query, &preload(&2, &1))
 
   @doc false
-  def supported_preloads(), do: ~w(owner authorizations)a
+  def supported_preloads(), do: ~w(owner authorizations authorizations_grants)a
 end

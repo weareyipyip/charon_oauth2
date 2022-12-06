@@ -22,7 +22,8 @@ defmodule CharonOauth2.Models.Clients do
 
       # preloads things
       iex> client = insert_test_client(@config)
-      iex> insert_test_authorization(@config, client_id: client.id)
+      iex> auth = insert_test_authorization(@config, client_id: client.id)
+      iex> insert_test_grant(@config, authorization_id: auth.id)
       iex> %{owner: %{id: _}, authorizations: [_]} = Clients.get_by([id: client.id], Client.supported_preloads)
   """
   @spec get_by(keyword | map, [atom]) :: Client.t() | nil
@@ -58,6 +59,9 @@ defmodule CharonOauth2.Models.Clients do
       # owner must exist
       iex> %{owner_id: -1} |> client_params() |> Clients.insert(@config) |> errors_on()
       %{owner: ["does not exist"]}
+
+      iex> Clients.insert(%{}, @config) |> errors_on()
+      %{grant_types: ["can't be blank"], name: ["can't be blank"], owner_id: ["can't be blank"], redirect_uris: ["can't be blank"], scopes: ["can't be blank"]}
   """
   @spec insert(map, Charon.Config.t()) :: {:ok, Client.t()} | {:error, Changeset.t()}
   def insert(params, config) do

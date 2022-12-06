@@ -1,4 +1,5 @@
-defmodule CharonOauth2.Test.User do
+defmodule CharonOauth2.Models.User do
+  @moduledoc false
   use Ecto.Schema
 
   schema "users" do

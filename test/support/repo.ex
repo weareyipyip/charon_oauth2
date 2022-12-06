@@ -1,4 +1,5 @@
-defmodule CharonOauth2.Test.Repo do
+defmodule CharonOauth2.Repo do
+  @moduledoc false
   use Ecto.Repo,
     otp_app: :charon_oauth2,
     adapter: Ecto.Adapters.Postgres

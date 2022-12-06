@@ -9,7 +9,22 @@ defmodule CharonOauth2.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      elixirc_paths: elixirc_paths(Mix.env())
+      elixirc_paths: elixirc_paths(Mix.env()),
+      description: """
+      Add Oauth2 capabilities to a Charon-protected server.
+      """,
+      package: [
+        licenses: ["Apache-2.0"],
+        links: %{github: "https://github.com/weareyipyip/charon_oauth2"},
+        source_url: "https://github.com/weareyipyip/charon_oauth2"
+      ],
+      source_url: "https://github.com/weareyipyip/charon_oauth2",
+      name: "CharonOauth2",
+      docs: [
+        source_ref: "main",
+        extras: ["./README.md"],
+        main: "readme"
+      ]
     ]
   end
 
@@ -26,17 +41,19 @@ defmodule CharonOauth2.MixProject do
       {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.0"},
       {:charon, "~> 1.3"},
-      {:ecto_sql, "~> 3.6", only: [:test]},
-      {:postgrex, ">= 0.0.0", only: [:test]}
+      {:ecto_sql, "~> 3.6", only: [:dev, :test]},
+      {:postgrex, ">= 0.0.0", only: [:dev, :test]}
     ]
   end
 
+  defp elixirc_paths(:dev), do: ["lib", "test/support"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp aliases do
     [
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"]
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      "ecto.migrate": "ecto.migrate --migrations-path test/support/migrations"
     ]
   end
 end

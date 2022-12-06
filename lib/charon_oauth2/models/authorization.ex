@@ -8,7 +8,7 @@ defmodule CharonOauth2.Models.Authorization do
   import Ecto.Query, except: [preload: 2, preload: 3]
   alias Ecto.Query
   alias CharonOauth2.Types.SeparatedString
-  alias CharonOauth2.Models.{Client}
+  alias CharonOauth2.Models.{Client, Grant, RefreshToken}
   alias CharonOauth2.Internal
   import Internal
 
@@ -21,8 +21,8 @@ defmodule CharonOauth2.Models.Authorization do
 
     belongs_to(:resource_owner, @resource_owner_schema)
     belongs_to(:client, Client, type: :binary_id)
-    # has_many(:grants, Oauth2Grant, foreign_key: :authorization_id)
-    # has_many(:refresh_tokens, Oauth2RefreshToken, foreign_key: :authorization_id)
+    has_many(:grants, Grant)
+    has_many(:refresh_tokens, RefreshToken, foreign_key: :authorization_id)
 
     timestamps(type: :utc_datetime)
   end
@@ -67,9 +67,8 @@ defmodule CharonOauth2.Models.Authorization do
     |> validate_required([:resource_owner_id, :client_id])
     |> assoc_constraint(:resource_owner)
     |> assoc_constraint(:client)
-    |> unique_constraint(:resource_owner_id,
-      name: "charon_oauth2_authorizations_uniq_client_res_owner_index",
-      message: "authorization already exists for client"
+    |> unique_constraint([:client_id, :resource_owner_id],
+      message: "user already authorized this client"
     )
   end
 
@@ -103,6 +102,16 @@ defmodule CharonOauth2.Models.Authorization do
           join(query, :left, [charon_oauth2_authorization: a], ro in assoc(a, :client),
             as: :client
           )
+
+        :grants ->
+          join(query, :left, [charon_oauth2_authorization: a], ro in assoc(a, :grants),
+            as: :grants
+          )
+
+        :refresh_tokens ->
+          join(query, :left, [charon_oauth2_authorization: a], ro in assoc(a, :refresh_tokens),
+            as: :refresh_tokens
+          )
       end
     end
   end
@@ -122,11 +131,17 @@ defmodule CharonOauth2.Models.Authorization do
 
       :client ->
         query |> resolve_binding(:client) |> Query.preload([client: c], client: c)
+
+      :grants ->
+        Query.preload(query, :grants)
+
+      :refresh_tokens ->
+        Query.preload(query, :refresh_tokens)
     end
   end
 
   def preload(query, list), do: Enum.reduce(list, query, &preload(&2, &1))
 
   @doc false
-  def supported_preloads(), do: ~w(resource_owner client)a
+  def supported_preloads(), do: ~w(resource_owner client grants refresh_tokens)a
 end

@@ -7,20 +7,12 @@ jobs:
   deploy:
     name: Publish release
     runs-on: ubuntu-latest
-    env:
-      MIX_ENV: test
-      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
 
     steps:
       - name: Display build environment
         run: printenv
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Install Charon deploy key
-        run: |
-          mkdir -p ~/.ssh
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ssh-add - <<< "${{ secrets.CHARON_DEPLOY_KEY }}"
 
       - name: Set version in readme
         uses: weareyipyip/set-version-action@v2

@@ -1,14 +1,8 @@
 defmodule CharonOauth2.Models.AuthorizationsTest do
   use CharonOauth2.DataCase
   alias CharonOauth2.Models.{Authorizations, Authorization}
-  import CharonOauth2.Test.TestSeeds
+  import CharonOauth2.Seeds
 
-  @config Charon.Config.from_enum(
-            token_issuer: "stuff",
-            optional_modules: %{
-              CharonOauth2 => %{scopes: ~w(read write)}
-            }
-          )
-
+  @config CharonOauth2.TestConfig.get()
   doctest Authorizations
 end

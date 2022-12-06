@@ -55,7 +55,16 @@ defmodule CharonOauth2.Models.Authorizations do
       # a user can authorize a client only once
       iex> {:ok, authorization} = authorization_params(@config) |> Authorizations.insert(@config)
       iex> authorization_params(@config, client_id: authorization.client_id, resource_owner_id: authorization.resource_owner_id) |> Authorizations.insert(@config) |> errors_on()
-      %{resource_owner_id: ["authorization already exists for client"]}
+      %{client_id: ["user already authorized this client"]}
+
+      # owner and client must exist
+      iex> authorization_params(@config, resource_owner_id: -1) |> Authorizations.insert(@config) |> errors_on()
+      %{resource_owner: ["does not exist"]}
+      iex> authorization_params(@config, client_id: Ecto.UUID.generate()) |> Authorizations.insert(@config) |> errors_on()
+      %{client: ["does not exist"]}
+
+      iex> Authorizations.insert(%{}, @config) |> errors_on()
+      %{scopes: ["can't be blank"], client_id: ["can't be blank"], resource_owner_id: ["can't be blank"]}
   """
   @spec insert(map, Charon.Config.t()) :: {:ok, Authorization.t()} | {:error, Changeset.t()}
   def insert(params, config) do
