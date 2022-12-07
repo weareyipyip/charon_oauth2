@@ -70,20 +70,11 @@ end
 
 create(index("charon_oauth2_grants", [:authorization_id]))
 create(unique_index("charon_oauth2_grants", [:code]))
-
-create table("charon_oauth2_refresh_tokens", primary_key: false) do
-  add(:id, :uuid, primary_key: true)
-  add(:expires_at, :utc_datetime, null: false)
-
-  add(:authorization_id, references("charon_oauth2_authorizations", on_delete: :delete_all),
-    null: false
-  )
-
-  timestamps(type: :utc_datetime)
-end
-
-create(index("charon_oauth2_refresh_tokens", [:authorization_id]))
 ```
+
+## Config
+
+Package uses session store, to prevent delete_all from throwing away oauth2 sessions, use separate config for charonoauth2.
 
 ## Models
 

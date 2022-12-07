@@ -8,7 +8,7 @@ defmodule CharonOauth2.Models.Authorization do
   import Ecto.Query, except: [preload: 2, preload: 3]
   alias Ecto.Query
   alias CharonOauth2.Types.SeparatedString
-  alias CharonOauth2.Models.{Client, Grant, RefreshToken}
+  alias CharonOauth2.Models.{Client, Grant}
   alias CharonOauth2.Internal
   import Internal
 
@@ -22,7 +22,6 @@ defmodule CharonOauth2.Models.Authorization do
     belongs_to(:resource_owner, @resource_owner_schema)
     belongs_to(:client, Client, type: :binary_id)
     has_many(:grants, Grant)
-    has_many(:refresh_tokens, RefreshToken, foreign_key: :authorization_id)
 
     timestamps(type: :utc_datetime)
   end
@@ -107,11 +106,6 @@ defmodule CharonOauth2.Models.Authorization do
           join(query, :left, [charon_oauth2_authorization: a], ro in assoc(a, :grants),
             as: :grants
           )
-
-        :refresh_tokens ->
-          join(query, :left, [charon_oauth2_authorization: a], ro in assoc(a, :refresh_tokens),
-            as: :refresh_tokens
-          )
       end
     end
   end
@@ -134,14 +128,11 @@ defmodule CharonOauth2.Models.Authorization do
 
       :grants ->
         Query.preload(query, :grants)
-
-      :refresh_tokens ->
-        Query.preload(query, :refresh_tokens)
     end
   end
 
   def preload(query, list), do: Enum.reduce(list, query, &preload(&2, &1))
 
   @doc false
-  def supported_preloads(), do: ~w(resource_owner client grants refresh_tokens)a
+  def supported_preloads(), do: ~w(resource_owner client grants)a
 end

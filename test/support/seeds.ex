@@ -1,7 +1,7 @@
 defmodule CharonOauth2.Seeds do
   @moduledoc false
   alias CharonOauth2.{Repo}
-  alias CharonOauth2.Models.{Clients, Authorizations, Grants, User, RefreshTokens}
+  alias CharonOauth2.Models.{Clients, Authorizations, Grants, User}
 
   @redirect_uri "http://stuff"
 
@@ -49,18 +49,6 @@ defmodule CharonOauth2.Seeds do
 
   def insert_test_grant(config, overrides \\ []) do
     grant_params(config, overrides) |> Grants.insert(config) |> bang!()
-  end
-
-  @default_refresh_token_params %{}
-
-  def refresh_token_params(config, overrides \\ []) do
-    @default_refresh_token_params
-    |> Map.merge(Map.new(overrides))
-    |> Map.put_new_lazy(:authorization_id, fn -> insert_test_authorization(config).id end)
-  end
-
-  def insert_test_refresh_token(config, overrides \\ []) do
-    refresh_token_params(config, overrides) |> RefreshTokens.insert(config) |> bang!()
   end
 
   ###########
