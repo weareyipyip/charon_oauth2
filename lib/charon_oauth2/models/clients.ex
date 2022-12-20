@@ -6,7 +6,6 @@ defmodule CharonOauth2.Models.Clients do
 
   alias CharonOauth2.Internal
   alias CharonOauth2.Models.Client
-  @repo Application.compile_env!(:charon_oauth2, :repo)
 
   @doc """
   Get a single client by one or more clauses, optionally with preloads.
@@ -28,7 +27,7 @@ defmodule CharonOauth2.Models.Clients do
   """
   @spec get_by(keyword | map, [atom]) :: Client.t() | nil
   def get_by(clauses, preloads \\ []) do
-    preloads |> Client.preload() |> @repo.get_by(clauses)
+    preloads |> Client.preload() |> Internal.get_repo().get_by(clauses)
   end
 
   @doc """
@@ -43,7 +42,7 @@ defmodule CharonOauth2.Models.Clients do
   """
   @spec all([atom]) :: [Client.t()]
   def all(preloads \\ []) do
-    preloads |> Client.preload() |> @repo.all()
+    preloads |> Client.preload() |> Internal.get_repo().all()
   end
 
   @doc """
@@ -65,7 +64,10 @@ defmodule CharonOauth2.Models.Clients do
   """
   @spec insert(map, Charon.Config.t()) :: {:ok, Client.t()} | {:error, Changeset.t()}
   def insert(params, config) do
-    params |> Client.insert_only_changeset() |> Client.changeset(params, config) |> @repo.insert()
+    params
+    |> Client.insert_only_changeset()
+    |> Client.changeset(params, config)
+    |> Internal.get_repo().insert()
   end
 
   @doc """
@@ -95,7 +97,7 @@ defmodule CharonOauth2.Models.Clients do
   @spec update(Client.t() | keyword(), map, Charon.Config.t()) ::
           {:ok, Client.t()} | {:error, Changeset.t()}
   def update(client = %Client{}, params, config) do
-    client |> Client.changeset(params, config) |> @repo.update()
+    client |> Client.changeset(params, config) |> Internal.get_repo().update()
   end
 
   def update(clauses, params, config) do
@@ -116,7 +118,7 @@ defmodule CharonOauth2.Models.Clients do
       iex> {:error, :not_found} = Clients.delete([id: client.id])
   """
   @spec delete(Client.t() | keyword) :: {:ok, Client.t()} | {:error, :not_found}
-  def delete(client = %Client{}), do: @repo.delete(client)
+  def delete(client = %Client{}), do: Internal.get_repo().delete(client)
 
   def delete(clauses) do
     Internal.get_and_do(fn -> get_by(clauses) end, &delete/1)

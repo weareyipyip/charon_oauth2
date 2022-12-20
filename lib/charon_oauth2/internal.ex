@@ -2,7 +2,7 @@ defmodule CharonOauth2.Internal do
   @moduledoc false
   alias Ecto.Changeset
 
-  @repo Application.compile_env!(:charon_oauth2, :repo)
+  def get_repo(), do: Application.get_env(:charon_oauth2, :repo)
 
   @doc false
   @spec multifield_apply(Changeset.t(), [atom], (Changeset.t(), atom -> Changeset.t())) ::
@@ -31,10 +31,10 @@ defmodule CharonOauth2.Internal do
       end
       |> case do
         {:ok, result} -> result
-        {:error, err} -> @repo.rollback(err)
-        nil -> @repo.rollback(:not_found)
+        {:error, err} -> get_repo().rollback(err)
+        nil -> get_repo().rollback(:not_found)
       end
     end
-    |> @repo.transaction()
+    |> get_repo().transaction()
   end
 end

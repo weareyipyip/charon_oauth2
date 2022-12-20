@@ -40,7 +40,7 @@ defmodule CharonOauth2.MixProject do
     [
       {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false},
       {:ecto, "~> 3.0"},
-      {:charon, "~> 1.3"},
+      {:charon, path: "/home/juul/Projects/YipYip/charon"},
       {:ecto_sql, "~> 3.6", only: [:dev, :test]},
       {:postgrex, ">= 0.0.0", only: [:dev, :test]}
     ]

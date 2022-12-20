@@ -6,7 +6,6 @@ defmodule CharonOauth2.Models.Authorizations do
 
   alias CharonOauth2.Internal
   alias CharonOauth2.Models.Authorization
-  @repo Application.compile_env!(:charon_oauth2, :repo)
 
   @doc """
   Get a single authorization by one or more clauses, optionally with preloads.
@@ -26,7 +25,7 @@ defmodule CharonOauth2.Models.Authorizations do
   """
   @spec get_by(keyword | map, [atom]) :: Authorization.t() | nil
   def get_by(clauses, preloads \\ []) do
-    preloads |> Authorization.preload() |> @repo.get_by(clauses)
+    preloads |> Authorization.preload() |> Internal.get_repo().get_by(clauses)
   end
 
   @doc """
@@ -41,7 +40,7 @@ defmodule CharonOauth2.Models.Authorizations do
   """
   @spec all([atom]) :: [Authorization.t()]
   def all(preloads \\ []) do
-    preloads |> Authorization.preload() |> @repo.all()
+    preloads |> Authorization.preload() |> Internal.get_repo().all()
   end
 
   @doc """
@@ -71,7 +70,7 @@ defmodule CharonOauth2.Models.Authorizations do
     params
     |> Authorization.insert_only_changeset()
     |> Authorization.changeset(params, config)
-    |> @repo.insert()
+    |> Internal.get_repo().insert()
   end
 
   @doc """
@@ -92,7 +91,7 @@ defmodule CharonOauth2.Models.Authorizations do
   @spec update(Authorization.t() | keyword(), map, Charon.Config.t()) ::
           {:ok, Authorization.t()} | {:error, Changeset.t()}
   def update(authorization = %Authorization{}, params, config) do
-    authorization |> Authorization.changeset(params, config) |> @repo.update()
+    authorization |> Authorization.changeset(params, config) |> Internal.get_repo().update()
   end
 
   def update(clauses, params, config) do
@@ -113,7 +112,7 @@ defmodule CharonOauth2.Models.Authorizations do
       iex> {:error, :not_found} = Authorizations.delete([id: authorization.id])
   """
   @spec delete(Authorization.t() | keyword) :: {:ok, Authorization.t()} | {:error, :not_found}
-  def delete(authorization = %Authorization{}), do: @repo.delete(authorization)
+  def delete(authorization = %Authorization{}), do: Internal.get_repo().delete(authorization)
 
   def delete(clauses) do
     Internal.get_and_do(fn -> get_by(clauses) end, &delete/1)

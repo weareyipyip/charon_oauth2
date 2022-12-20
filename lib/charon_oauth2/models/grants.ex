@@ -7,7 +7,6 @@ defmodule CharonOauth2.Models.Grants do
   alias CharonOauth2.{Internal}
   alias CharonOauth2.Models.Grant
   import Ecto.Query, only: [from: 2]
-  @repo Application.compile_env!(:charon_oauth2, :repo)
 
   @doc """
   Get a single grant by one or more clauses, optionally with preloads.
@@ -27,7 +26,7 @@ defmodule CharonOauth2.Models.Grants do
   """
   @spec get_by(keyword | map, [atom]) :: Grant.t() | nil
   def get_by(clauses, preloads \\ []) do
-    preloads |> Grant.preload() |> @repo.get_by(clauses)
+    preloads |> Grant.preload() |> Internal.get_repo().get_by(clauses)
   end
 
   @doc """
@@ -42,7 +41,7 @@ defmodule CharonOauth2.Models.Grants do
   """
   @spec all([atom]) :: [Grant.t()]
   def all(preloads \\ []) do
-    preloads |> Grant.preload() |> @repo.all()
+    preloads |> Grant.preload() |> Internal.get_repo().all()
   end
 
   @doc """
@@ -72,7 +71,7 @@ defmodule CharonOauth2.Models.Grants do
   """
   @spec insert(map, Charon.Config.t()) :: {:ok, Grant.t()} | {:error, Changeset.t()}
   def insert(params, config) do
-    params |> Grant.insert_only_changeset(config) |> @repo.insert()
+    params |> Grant.insert_only_changeset(config) |> Internal.get_repo().insert()
   end
 
   @doc """
@@ -89,7 +88,7 @@ defmodule CharonOauth2.Models.Grants do
       iex> {:error, :not_found} = Grants.delete([id: grant.id])
   """
   @spec delete(Grant.t() | keyword) :: {:ok, Grant.t()} | {:error, :not_found}
-  def delete(grant = %Grant{}), do: @repo.delete(grant)
+  def delete(grant = %Grant{}), do: Internal.get_repo().delete(grant)
 
   def delete(clauses) do
     Internal.get_and_do(fn -> get_by(clauses) end, &delete/1)
@@ -111,7 +110,7 @@ defmodule CharonOauth2.Models.Grants do
   @spec delete_expired() :: {integer, nil}
   def delete_expired() do
     from(g in Grant, where: g.expires_at < ago(0, "second"))
-    |> @repo.delete_all()
+    |> Internal.get_repo().delete_all()
     |> tap(fn {n, _} -> Logger.info("Deleted #{n} expired oauth2_grants") end)
   end
 end
