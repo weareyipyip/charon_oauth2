@@ -1,9 +1,9 @@
 defmodule CharonOauth2.Models.ClientsTest do
   use CharonOauth2.DataCase
-  alias CharonOauth2.Models.{Clients, Client}
-  import CharonOauth2.Seeds
+  alias MyApp.CharonOauth2.{Clients, Client}
+  import MyApp.Seeds
 
-  @config CharonOauth2.TestConfig.get()
+  @config MyApp.CharonOauth2.Config.get()
 
   doctest Clients
 end

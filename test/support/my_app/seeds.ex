@@ -1,7 +1,7 @@
-defmodule CharonOauth2.Seeds do
+defmodule MyApp.Seeds do
   @moduledoc false
-  alias CharonOauth2.{Repo}
-  alias CharonOauth2.Models.{Clients, Authorizations, Grants, User}
+  alias MyApp.{User, Repo}
+  alias MyApp.CharonOauth2.{Clients, Authorizations, Grants}
 
   @redirect_uri "http://stuff"
 

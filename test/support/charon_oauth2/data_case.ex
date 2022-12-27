@@ -5,7 +5,7 @@ defmodule CharonOauth2.DataCase do
 
   using do
     quote do
-      alias CharonOauth2.Repo
+      alias MyApp.Repo
 
       import Ecto
       import Ecto.Changeset
@@ -15,7 +15,7 @@ defmodule CharonOauth2.DataCase do
   end
 
   setup tags do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(CharonOauth2.Repo, shared: not tags[:async])
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(MyApp.Repo, shared: not tags[:async])
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
     :ok
   end

@@ -1,8 +1,15 @@
 defmodule CharonOauth2.Models.AuthorizationsTest do
   use CharonOauth2.DataCase
-  alias CharonOauth2.Models.{Authorizations, Authorization}
-  import CharonOauth2.Seeds
+  alias MyApp.CharonOauth2.{Authorizations, Authorization}
+  import MyApp.Seeds
 
-  @config CharonOauth2.TestConfig.get()
+  @config MyApp.CharonOauth2.Config.get()
+
+  describe "all" do
+    test "works" do
+      assert [] == Authorizations.all()
+    end
+  end
+
   doctest Authorizations
 end

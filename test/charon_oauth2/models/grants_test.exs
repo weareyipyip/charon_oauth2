@@ -1,9 +1,9 @@
 defmodule CharonOauth2.Models.GrantsTest do
   use CharonOauth2.DataCase
-  alias CharonOauth2.Models.{Grants, Grant}
-  import CharonOauth2.Seeds
+  alias MyApp.CharonOauth2.{Grants, Grant}
+  import MyApp.Seeds
 
-  @config CharonOauth2.TestConfig.get()
+  @config MyApp.CharonOauth2.Config.get()
 
   doctest Grants
 end

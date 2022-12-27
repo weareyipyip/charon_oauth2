@@ -1,6 +1,6 @@
 ExUnit.start()
 
-alias CharonOauth2.Repo
+alias MyApp.Repo
 {:ok, _} = Ecto.Adapters.Postgres.ensure_all_started(Repo, :temporary)
 
 # This cleans up the test database and loads the schema
@@ -11,4 +11,4 @@ alias CharonOauth2.Repo
 # Start a process ONLY for our test run.
 {:ok, _pid} = Repo.start_link()
 
-Ecto.Adapters.SQL.Sandbox.mode(CharonOauth2.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(MyApp.Repo, :manual)

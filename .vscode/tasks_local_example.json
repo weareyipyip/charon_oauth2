@@ -69,7 +69,7 @@
       "dependsOn": ["Start containers"],
       "label": "Reset DB",
       "type": "shell",
-      "command": "MIX_ENV=test mix do ecto.drop, ecto.create, ecto.migrate"
+      "command": "MIX_ENV=test mix do ecto.drop, ecto.create, ecto.migrate && mix do ecto.drop, ecto.create, ecto.migrate"
     }
   ]
 }

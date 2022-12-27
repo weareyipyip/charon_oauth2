@@ -11,8 +11,16 @@ defmodule CharonOauth2.Config do
         }
       )
   """
-  @enforce_keys [:scopes]
-  defstruct [:scopes, grant_ttl: 15 * 60]
+  @enforce_keys [:scopes, :repo, :resource_owner_schema]
+  defstruct [
+    :repo,
+    :resource_owner_schema,
+    :scopes,
+    grant_ttl: 15 * 60,
+    grant_table: "charon_oauth2_grants",
+    client_table: "charon_oauth2_clients",
+    authorization_table: "charon_oauth2_authorizations"
+  ]
 
   @type t :: %__MODULE__{scopes: [String.t()], grant_ttl: pos_integer()}
 

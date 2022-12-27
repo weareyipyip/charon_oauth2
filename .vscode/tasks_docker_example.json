@@ -75,7 +75,7 @@
       "dependsOn": ["Start containers"],
       "label": "Reset DB",
       "type": "shell",
-      "command": "docker-compose exec -e MIX_ENV=test elixir mix do ecto.drop, ecto.create, ecto.migrate"
+      "command": "docker-compose exec -e MIX_ENV=test elixir mix do ecto.drop, ecto.create, ecto.migrate && docker-compose exec elixir mix do ecto.drop, ecto.create, ecto.migrate"
     }
   ]
 }

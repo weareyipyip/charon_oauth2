@@ -1,3 +1,3 @@
 import Config
 
-config :charon_oauth2, CharonOauth2.Repo, database: "charon_oauth2"
+config :charon_oauth2, MyApp.Repo, database: "charon_oauth2"

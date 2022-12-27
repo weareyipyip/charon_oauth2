@@ -2,8 +2,6 @@ defmodule CharonOauth2.Internal do
   @moduledoc false
   alias Ecto.Changeset
 
-  def get_repo(), do: Application.get_env(:charon_oauth2, :repo)
-
   @doc false
   @spec multifield_apply(Changeset.t(), [atom], (Changeset.t(), atom -> Changeset.t())) ::
           Changeset.t()
@@ -19,22 +17,17 @@ defmodule CharonOauth2.Internal do
   def get_module_config(%{optional_modules: %{CharonOauth2 => config}}), do: config
 
   @doc false
-  def random_string(bits \\ 256) do
-    bits |> div(8) |> :crypto.strong_rand_bytes() |> Base.url_encode64()
-  end
-
-  @doc false
-  def get_and_do(getter, then_do) do
+  def get_and_do(getter, then_do, repo) do
     fn ->
       with thing = %{} <- getter.() do
         then_do.(thing)
       end
       |> case do
         {:ok, result} -> result
-        {:error, err} -> get_repo().rollback(err)
-        nil -> get_repo().rollback(:not_found)
+        {:error, err} -> repo.rollback(err)
+        nil -> repo.rollback(:not_found)
       end
     end
-    |> get_repo().transaction()
+    |> repo.transaction()
   end
 end

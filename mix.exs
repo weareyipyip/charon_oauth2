@@ -53,7 +53,7 @@ defmodule CharonOauth2.MixProject do
   defp aliases do
     [
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "ecto.migrate": "ecto.migrate --migrations-path test/support/migrations"
+      "ecto.migrate": "ecto.migrate --migrations-path test/support/my_app/migrations"
     ]
   end
 end

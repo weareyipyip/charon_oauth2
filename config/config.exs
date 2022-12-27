@@ -1,10 +1,12 @@
 import Config
 
-config :charon_oauth2, ecto_repos: [CharonOauth2.Repo]
+config :charon_oauth2, ecto_repos: [MyApp.Repo]
 
-config :charon_oauth2, resource_owner_schema: CharonOauth2.Models.User, repo: CharonOauth2.Repo
+config :charon_oauth2, CharonOauth2.MyApp,
+  resource_owner_schema: MyApp.User,
+  repo: MyApp.Repo
 
-config :charon_oauth2, CharonOauth2.Repo,
+config :charon_oauth2, MyApp.Repo,
   hostname: System.get_env("POSTGRES_HOSTNAME", "localhost"),
   port: 5432,
   username: "postgres",
