@@ -100,6 +100,13 @@ defmodule CharonOauth2.GenEctoMod.Grant do
               |> resolve_binding(:authorization)
               |> join(:left, [authorization: a], c in assoc(a, :client), as: :client)
 
+            :authorization_resource_owner ->
+              query
+              |> resolve_binding(:authorization)
+              |> join(:left, [authorization: a], ro in assoc(a, :resource_owner),
+                as: :resource_owner
+              )
+
             _ ->
               query
           end
@@ -123,13 +130,20 @@ defmodule CharonOauth2.GenEctoMod.Grant do
             query
             |> resolve_binding(:authorization_client)
             |> Query.preload([authorization: a, client: c], authorization: {a, client: c})
+
+          :authorization_resource_owner ->
+            query
+            |> resolve_binding(:authorization_resource_owner)
+            |> Query.preload([authorization: a, resource_owner: ro],
+              authorization: {a, resource_owner: ro}
+            )
         end
       end
 
       def preload(query, list), do: Enum.reduce(list, query, &preload(&2, &1))
 
       @doc false
-      def supported_preloads(), do: ~w(authorization authorization_client)a
+      def supported_preloads(), do: ~w(authorization authorization_client authorization_resource_owner)a
     end
   end
 end
