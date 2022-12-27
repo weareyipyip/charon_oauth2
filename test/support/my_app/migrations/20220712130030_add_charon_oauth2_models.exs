@@ -5,6 +5,6 @@ defmodule MyApp.Repo.Migrations.AddCharonOauth2Models do
     create table("users") do
     end
 
-    CharonOauth2.Migration.change("users", MyApp.CharonOauth2.Config.get())
+    CharonOauth2.Migration.change(MyApp.CharonOauth2.Config.get())
   end
 end

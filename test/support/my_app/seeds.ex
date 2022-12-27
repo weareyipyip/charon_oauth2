@@ -2,6 +2,7 @@ defmodule MyApp.Seeds do
   @moduledoc false
   alias MyApp.{User, Repo}
   alias MyApp.CharonOauth2.{Clients, Authorizations, Grants}
+  alias CharonOauth2.Internal
 
   @redirect_uri "http://stuff"
 
@@ -12,14 +13,16 @@ defmodule MyApp.Seeds do
     grant_types: ~w(authorization_code)
   }
 
-  def client_params(overrides \\ []) do
+  def client_params(config, overrides \\ []) do
+    id = Internal.get_module_config(config).resource_owner_id_column
+
     @default_client_params
     |> Map.merge(Map.new(overrides))
-    |> Map.put_new_lazy(:owner_id, fn -> insert_test_user().id end)
+    |> Map.put_new_lazy(:owner_id, fn -> insert_test_user() |> Map.get(id) end)
   end
 
   def insert_test_client(config, overrides \\ []) do
-    overrides |> client_params() |> Clients.insert(config) |> bang!()
+    config |> client_params(overrides) |> Clients.insert(config) |> bang!()
   end
 
   def insert_test_user() do
@@ -29,9 +32,11 @@ defmodule MyApp.Seeds do
   @default_authorization_params %{scopes: ~w(read)}
 
   def authorization_params(config, overrides \\ []) do
+    id = Internal.get_module_config(config).resource_owner_id_column
+
     @default_authorization_params
     |> Map.merge(Map.new(overrides))
-    |> Map.put_new_lazy(:resource_owner_id, fn -> insert_test_user().id end)
+    |> Map.put_new_lazy(:resource_owner_id, fn -> insert_test_user() |> Map.get(id) end)
     |> Map.put_new_lazy(:client_id, fn -> insert_test_client(config).id end)
   end
 

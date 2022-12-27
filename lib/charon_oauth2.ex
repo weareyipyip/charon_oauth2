@@ -44,7 +44,12 @@ defmodule CharonOauth2 do
         Authorization.generate(@user_schema, @client_schema, @grant_schema, charon_config)
 
       # generate a dummy module to suppress "assoc not found warnings"
-      Module.create(@authorization_schema, Authorization.gen_dummy(), Macro.Env.location(__ENV__))
+      Module.create(
+        @authorization_schema,
+        Authorization.gen_dummy(charon_config),
+        Macro.Env.location(__ENV__)
+      )
+
       Module.create(@grant_schema, grant_schema, Macro.Env.location(__ENV__))
       Module.create(@client_schema, client_schema, Macro.Env.location(__ENV__))
       # suppress "redefining module" warning, because we actually want to redefine it :)

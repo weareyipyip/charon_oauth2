@@ -1,13 +1,19 @@
 defmodule CharonOauth2.GenEctoMod.Authorization do
   @moduledoc "Generate an app's Authorization module."
 
-  def gen_dummy() do
-    quote do
+  def gen_dummy(config) do
+    quote generated: true do
       use Ecto.Schema
+      alias CharonOauth2.Internal
+
+      @config unquote(config)
+      @mod_config Internal.get_module_config(@config)
 
       schema "fix warnings" do
         field :client_id, :integer
-        field :resource_owner_id, :integer
+
+        field :resource_owner_id,
+              Internal.column_type_to_ecto_type(@mod_config.resource_owner_id_type)
       end
     end
   end
@@ -37,7 +43,11 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
       schema @mod_config.authorization_table do
         field(:scopes, SeparatedString, pattern: ",")
 
-        belongs_to(:resource_owner, @res_owner_schema)
+        belongs_to(:resource_owner, @res_owner_schema,
+          references: @mod_config.resource_owner_id_column,
+          type: Internal.column_type_to_ecto_type(@mod_config.resource_owner_id_type)
+        )
+
         belongs_to(:client, @client_schema, type: :binary_id)
         has_many(:grants, @grant_schema)
 

@@ -19,7 +19,9 @@ defmodule CharonOauth2.Config do
     grant_ttl: 15 * 60,
     grant_table: "charon_oauth2_grants",
     client_table: "charon_oauth2_clients",
-    authorization_table: "charon_oauth2_authorizations"
+    authorization_table: "charon_oauth2_authorizations",
+    resource_owner_id_column: :id,
+    resource_owner_id_type: :bigserial
   ]
 
   @type t :: %__MODULE__{scopes: [String.t()], grant_ttl: pos_integer()}

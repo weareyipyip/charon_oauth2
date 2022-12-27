@@ -56,11 +56,11 @@ defmodule CharonOauth2.GenEctoMod.Clients do
 
           # succesfully creates a client with a secret
           iex> user = insert_test_user()
-          iex> {:ok, client} = %{owner_id: user.id} |> client_params() |> Clients.insert(@config)
+          iex> {:ok, client} = client_params(@config, owner_id: user.id) |> Clients.insert(@config)
           iex> %{secret: <<_::binary>>} = client
 
           # owner must exist
-          iex> %{owner_id: -1} |> client_params() |> Clients.insert(@config) |> errors_on()
+          iex> client_params(@config, owner_id: -1) |> Clients.insert(@config) |> errors_on()
           %{owner: ["does not exist"]}
 
           iex> Clients.insert(%{}, @config) |> errors_on()

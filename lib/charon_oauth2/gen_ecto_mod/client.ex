@@ -36,7 +36,11 @@ defmodule CharonOauth2.GenEctoMod.Client do
         field(:client_type, :string, default: "confidential")
 
         has_many(:authorizations, @auth_schema)
-        belongs_to(:owner, @res_owner_schema)
+
+        belongs_to(:owner, @res_owner_schema,
+          references: @mod_config.resource_owner_id_column,
+          type: Internal.column_type_to_ecto_type(@mod_config.resource_owner_id_type)
+        )
 
         timestamps(type: :utc_datetime)
       end

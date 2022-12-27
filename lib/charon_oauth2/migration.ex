@@ -7,7 +7,7 @@ defmodule CharonOauth2.Migration do
       defmodule MyApp.Repo.Migrations.Oauth2Models do
         use Ecto.Migration
 
-        def change, do: CharonOauth2.Migration.change("users", charon_config)
+        def change, do: CharonOauth2.Migration.change(charon_config)
       end
   """
   import Ecto.Migration
@@ -15,9 +15,12 @@ defmodule CharonOauth2.Migration do
   @doc """
   Call from a migration to generate `CharonOauth2` models. Supports rollbacks as well.
   """
-  @spec change(String.t(), Charon.Config.t()) :: any()
-  def change(user_table, config) do
+  @spec change(Charon.Config.t()) :: any()
+  def change(config) do
     mod_config = CharonOauth2.Internal.get_module_config(config)
+    resource_owner_table = mod_config.resource_owner_schema.__schema__(:source)
+    resource_owner_id_column = mod_config.resource_owner_id_column
+    resource_owner_id_type = mod_config.resource_owner_id_type
 
     create table(mod_config.client_table, primary_key: false) do
       add(:id, :uuid, primary_key: true)
@@ -27,7 +30,16 @@ defmodule CharonOauth2.Migration do
       add(:scopes, {:array, :text}, null: false)
       add(:grant_types, {:array, :text}, null: false)
       add(:client_type, :text, null: false)
-      add(:owner_id, references(user_table, on_delete: :delete_all), null: false)
+
+      add(
+        :owner_id,
+        references(resource_owner_table,
+          on_delete: :delete_all,
+          column: resource_owner_id_column,
+          type: resource_owner_id_type
+        ),
+        null: false
+      )
 
       timestamps(type: :utc_datetime)
     end
@@ -39,7 +51,16 @@ defmodule CharonOauth2.Migration do
         null: false
       )
 
-      add(:resource_owner_id, references(user_table, on_delete: :delete_all), null: false)
+      add(
+        :resource_owner_id,
+        references(resource_owner_table,
+          on_delete: :delete_all,
+          column: resource_owner_id_column,
+          type: resource_owner_id_type
+        ),
+        null: false
+      )
+
       add(:scopes, {:array, :text}, null: false)
 
       timestamps(type: :utc_datetime)

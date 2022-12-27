@@ -30,4 +30,9 @@ defmodule CharonOauth2.Internal do
     end
     |> repo.transaction()
   end
+
+  @doc false
+  def column_type_to_ecto_type(:bigserial), do: :id
+  def column_type_to_ecto_type(:serial), do: :id
+  def column_type_to_ecto_type(:uuid), do: :binary_id
 end
