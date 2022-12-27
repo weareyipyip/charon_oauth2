@@ -1,6 +1,6 @@
 defmodule CharonOauth2 do
   @moduledoc """
-      use CharonOauth2, @mod_config
+      use CharonOauth2, @charon_config
   """
   alias __MODULE__.Internal
   alias CharonOauth2.GenEctoMod.{Authorization, Authorizations, Client, Clients, Grant, Grants}
@@ -20,6 +20,17 @@ defmodule CharonOauth2 do
       @authorization_context __MODULE__.Authorizations
       @grant_schema __MODULE__.Grant
       @grant_context __MODULE__.Grants
+
+      @moduledoc """
+      Entrypoint module for CharonOauth2.
+      The following submodules are generated:
+      - `#{@authorization_schema}`
+      - `#{@authorization_context}`
+       - `#{@client_schema}`
+       - `#{@client_context}`
+       - `#{@grant_schema}`
+       - `#{@grant_context}`
+      """
 
       ###########
       # Schemas #

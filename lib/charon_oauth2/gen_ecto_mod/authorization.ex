@@ -7,6 +7,7 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
 
       schema "fix warnings" do
         field :client_id, :integer
+        field :resource_owner_id, :integer
       end
     end
   end
