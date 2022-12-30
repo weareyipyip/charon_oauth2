@@ -4,6 +4,9 @@ defmodule MyApp.Seeds do
   alias MyApp.CharonOauth2.{Clients, Authorizations, Grants}
   alias CharonOauth2.Internal
 
+  @config MyApp.CharonOauth2.Config.get()
+  @mod_config Internal.get_module_config(@config)
+
   @redirect_uri "http://stuff"
 
   @default_client_params %{
@@ -13,16 +16,16 @@ defmodule MyApp.Seeds do
     grant_types: ~w(authorization_code)
   }
 
-  def client_params(config, overrides \\ []) do
-    id = Internal.get_module_config(config).resource_owner_id_column
+  def client_params(overrides \\ []) do
+    id_field = @mod_config.resource_owner_id_column
 
     @default_client_params
     |> Map.merge(Map.new(overrides))
-    |> Map.put_new_lazy(:owner_id, fn -> insert_test_user() |> Map.get(id) end)
+    |> Map.put_new_lazy(:owner_id, fn -> insert_test_user() |> Map.get(id_field) end)
   end
 
-  def insert_test_client(config, overrides \\ []) do
-    config |> client_params(overrides) |> Clients.insert(config) |> bang!()
+  def insert_test_client(overrides \\ []) do
+    overrides |> client_params() |> Clients.insert() |> bang!()
   end
 
   def insert_test_user() do
@@ -31,29 +34,29 @@ defmodule MyApp.Seeds do
 
   @default_authorization_params %{scopes: ~w(read)}
 
-  def authorization_params(config, overrides \\ []) do
-    id = Internal.get_module_config(config).resource_owner_id_column
+  def authorization_params(overrides \\ []) do
+    id_field = @mod_config.resource_owner_id_column
 
     @default_authorization_params
     |> Map.merge(Map.new(overrides))
-    |> Map.put_new_lazy(:resource_owner_id, fn -> insert_test_user() |> Map.get(id) end)
-    |> Map.put_new_lazy(:client_id, fn -> insert_test_client(config).id end)
+    |> Map.put_new_lazy(:resource_owner_id, fn -> insert_test_user() |> Map.get(id_field) end)
+    |> Map.put_new_lazy(:client_id, fn -> insert_test_client().id end)
   end
 
-  def insert_test_authorization(config, overrides \\ []) do
-    authorization_params(config, overrides) |> Authorizations.insert(config) |> bang!()
+  def insert_test_authorization(overrides \\ []) do
+    overrides |> authorization_params() |> Authorizations.insert() |> bang!()
   end
 
   @default_grant_params %{redirect_uri: @redirect_uri, type: "authorization_code"}
 
-  def grant_params(config, overrides \\ []) do
+  def grant_params(overrides \\ []) do
     @default_grant_params
     |> Map.merge(Map.new(overrides))
-    |> Map.put_new_lazy(:authorization_id, fn -> insert_test_authorization(config).id end)
+    |> Map.put_new_lazy(:authorization_id, fn -> insert_test_authorization().id end)
   end
 
-  def insert_test_grant(config, overrides \\ []) do
-    grant_params(config, overrides) |> Grants.insert(config) |> bang!()
+  def insert_test_grant(overrides \\ []) do
+    overrides |> grant_params() |> Grants.insert() |> bang!()
   end
 
   ###########

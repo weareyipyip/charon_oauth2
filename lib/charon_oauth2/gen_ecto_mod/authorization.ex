@@ -37,6 +37,7 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
       @grant_schema unquote(grant_schema)
       @client_schema unquote(client_schema)
       @res_owner_schema unquote(resource_owner_schema)
+      @app_scopes @mod_config.scopes |> Map.keys()
 
       @type t :: %__MODULE__{}
 
@@ -57,16 +58,14 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
       @doc """
       Basic changeset.
       """
-      @spec changeset(__MODULE__.t() | Changeset.t(), map(), Charon.Config.t()) :: Changeset.t()
-      def changeset(struct_or_cs \\ %__MODULE__{}, params, config) do
-        config = get_module_config(config)
-
+      @spec changeset(__MODULE__.t() | Changeset.t(), map()) :: Changeset.t()
+      def changeset(struct_or_cs \\ %__MODULE__{}, params) do
         struct_or_cs
         |> cast(params, [:scopes])
         |> validate_required([:scopes])
         |> multifield_apply([:scopes], &to_set/2)
-        |> validate_subset(:scopes, config.scopes,
-          message: "must be subset of #{Enum.join(config.scopes, ", ")}"
+        |> validate_subset(:scopes, @app_scopes,
+          message: "must be subset of #{Enum.join(@app_scopes, ", ")}"
         )
         |> prepare_changes(fn cs = %{data: data, changes: %{scopes: scopes}} ->
           with <<client_id::binary>> <- get_field(cs, :client_id),

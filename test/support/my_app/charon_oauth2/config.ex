@@ -6,7 +6,7 @@ defmodule MyApp.CharonOauth2.Config do
             get_base_secret: &__MODULE__.get_secret/0,
             optional_modules: %{
               CharonOauth2 => %{
-                scopes: ~w(read write),
+                scopes: %{"read" => "Read stuff in MyApp", "write" => "Write stuff in MyApp"},
                 resource_owner_schema: MyApp.User,
                 repo: MyApp.Repo
               }

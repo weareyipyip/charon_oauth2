@@ -39,11 +39,9 @@ defmodule CharonOauth2.GenEctoMod.Grant do
       @doc """
       Insert-only changeset - some things (should) never change.
       """
-      @spec insert_only_changeset(__MODULE__.t() | Changeset.t(), map(), Charon.Config.t()) ::
+      @spec insert_only_changeset(__MODULE__.t() | Changeset.t(), map()) ::
               Changeset.t()
-      def insert_only_changeset(struct_or_cs \\ %__MODULE__{}, params, config) do
-        ttl = Internal.get_module_config(config).grant_ttl
-
+      def insert_only_changeset(struct_or_cs \\ %__MODULE__{}, params) do
         struct_or_cs
         |> cast(params, [:redirect_uri, :type, :authorization_id])
         |> validate_required([:redirect_uri, :type, :authorization_id])
@@ -66,7 +64,10 @@ defmodule CharonOauth2.GenEctoMod.Grant do
         end)
         |> unique_constraint(:code)
         |> assoc_constraint(:authorization)
-        |> put_change(:expires_at, DateTime.from_unix!(ttl + Charon.Internal.now()))
+        |> put_change(
+          :expires_at,
+          DateTime.from_unix!(@mod_config.grant_ttl + CharonInternal.now())
+        )
       end
 
       ###########
@@ -143,7 +144,8 @@ defmodule CharonOauth2.GenEctoMod.Grant do
       def preload(query, list), do: Enum.reduce(list, query, &preload(&2, &1))
 
       @doc false
-      def supported_preloads(), do: ~w(authorization authorization_client authorization_resource_owner)a
+      def supported_preloads(),
+        do: ~w(authorization authorization_client authorization_resource_owner)a
     end
   end
 end

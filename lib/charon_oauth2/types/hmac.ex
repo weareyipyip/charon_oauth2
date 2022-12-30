@@ -11,7 +11,7 @@ defmodule CharonOauth2.Types.Hmac do
   use ParameterizedType
 
   @base_type :binary
-  @salt "#{__MODULE__}"
+  @salt "charon_oauth2_type_hmac"
 
   @impl true
   def init(opts) do

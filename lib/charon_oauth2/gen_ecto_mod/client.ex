@@ -21,6 +21,7 @@ defmodule CharonOauth2.GenEctoMod.Client do
       @mod_config Internal.get_module_config(@config)
       @auth_schema unquote(authorization_schema)
       @res_owner_schema @mod_config.resource_owner_schema
+      @app_scopes @mod_config.scopes |> Map.keys()
 
       @client_types ~w(confidential public)
       @grant_types ~w(authorization_code refresh_token)
@@ -48,11 +49,9 @@ defmodule CharonOauth2.GenEctoMod.Client do
       @doc """
       Basic changeset.
       """
-      @spec changeset(__MODULE__.t() | Changeset.t(), map(), Charon.Config.t()) ::
+      @spec changeset(__MODULE__.t() | Changeset.t(), map()) ::
               Changeset.t()
-      def changeset(struct_or_cs \\ %__MODULE__{}, params, config) do
-        config = get_module_config(config)
-
+      def changeset(struct_or_cs \\ %__MODULE__{}, params) do
         struct_or_cs
         |> cast(params, [:name, :redirect_uris, :scopes, :grant_types, :client_type, :secret])
         |> validate_required([:name, :redirect_uris, :scopes, :grant_types, :client_type])
@@ -63,9 +62,29 @@ defmodule CharonOauth2.GenEctoMod.Client do
         |> validate_subset(:grant_types, @grant_types,
           message: "must be subset of #{Enum.join(@grant_types, ", ")}"
         )
-        |> validate_subset(:scopes, config.scopes,
-          message: "must be subset of #{Enum.join(config.scopes, ", ")}"
+        |> validate_subset(:scopes, @app_scopes,
+          message: "must be subset of #{Enum.join(@app_scopes, ", ")}"
         )
+        |> prepare_changes(fn
+          cs = %{data: %{id: id, scopes: current_scopes}, changes: %{scopes: scopes}}
+          when not is_nil(id) ->
+            if [] != (removed_scopes = current_scopes -- scopes) do
+              from(a in @auth_schema, where: a.client_id == ^id, select: {a.id, a.scopes})
+              |> cs.repo.all()
+              |> Enum.each(fn {auth_id, auth_scopes} ->
+                auth_scopes = auth_scopes -- removed_scopes
+
+                {1, _} =
+                  from(a in @auth_schema, where: a.id == ^auth_id)
+                  |> cs.repo.update_all(set: [scopes: auth_scopes])
+              end)
+            end
+
+            cs
+
+          cs ->
+            cs
+        end)
         |> validate_change(:redirect_uris, fn _fld, uris ->
           if invalid_uri = Enum.find(uris, &(!match?({:ok, _}, URI.new(&1)))) do
             [redirect_uris: "invalid uri: #{invalid_uri}"]

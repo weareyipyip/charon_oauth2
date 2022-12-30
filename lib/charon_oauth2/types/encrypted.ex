@@ -10,7 +10,7 @@ defmodule CharonOauth2.Types.Encrypted do
   use ParameterizedType
 
   @base_type :binary
-  @salt "#{__MODULE__}"
+  @salt "charon_oauth2_type_encrypted"
 
   @impl true
   def init(opts) do

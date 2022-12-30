@@ -3,7 +3,5 @@ defmodule CharonOauth2.Models.GrantsTest do
   alias MyApp.CharonOauth2.{Grants, Grant}
   import MyApp.Seeds
 
-  @config MyApp.CharonOauth2.Config.get()
-
   doctest Grants
 end

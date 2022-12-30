@@ -22,16 +22,16 @@ defmodule CharonOauth2.GenEctoMod.Grants do
 
       ## Doctests
 
-          iex> grant = insert_test_grant(@config)
+          iex> grant = insert_test_grant()
           iex> %Grant{} = Grants.get_by(id: grant.id)
           iex> nil = Grants.get_by(id: grant.id + 1)
 
           # preloads things
-          iex> grant = insert_test_grant(@config)
+          iex> grant = insert_test_grant()
           iex> %{authorization: %{client: %{id: _}}} = Grants.get_by([id: grant.id], Grant.supported_preloads)
 
           # a grant can be retrieved by its code (actually by the HMAC of its code)
-          iex> %{id: id, code: code} = insert_test_grant(@config)
+          iex> %{id: id, code: code} = insert_test_grant()
           iex> ^id = Grants.get_by(code: code).id
       """
       @spec get_by(keyword | map, [atom]) :: @grant_schema.t() | nil
@@ -46,7 +46,7 @@ defmodule CharonOauth2.GenEctoMod.Grants do
 
       ## Doctests
 
-          iex> insert_test_grant(@config)
+          iex> insert_test_grant()
           iex> [%Grant{}] = Grants.all()
       """
       @spec all([atom]) :: [@grant_schema.t()]
@@ -60,30 +60,27 @@ defmodule CharonOauth2.GenEctoMod.Grants do
       ## Examples / doctests
 
           # succesfully creates a grant
-          iex> {:ok, _} = grant_params(@config) |> Grants.insert(@config)
+          iex> {:ok, _} = grant_params() |> Grants.insert()
 
-          iex> Grants.insert(%{}, @config) |> errors_on()
+          iex> Grants.insert(%{}) |> errors_on()
           %{authorization_id: ["can't be blank"], redirect_uri: ["can't be blank"], type: ["can't be blank"]}
 
           # authorization must exist
-          iex> grant_params(@config, authorization_id: -1) |> Grants.insert(@config) |> errors_on()
+          iex> grant_params(authorization_id: -1) |> Grants.insert() |> errors_on()
           %{authorization: ["does not exist"]}
 
           # type must be one of client grant_type's
-          iex> client = insert_test_client(@config, grant_types: ~w(refresh_token))
-          iex> authorization = insert_test_authorization(@config, client_id: client.id)
-          iex> grant_params(@config, authorization_id: authorization.id) |> Grants.insert(@config) |> errors_on()
+          iex> client = insert_test_client(grant_types: ~w(refresh_token))
+          iex> authorization = insert_test_authorization(client_id: client.id)
+          iex> grant_params(authorization_id: authorization.id) |> Grants.insert() |> errors_on()
           %{type: ["not supported by client"]}
 
           # redirect_uri must be one of client redirect_uri's
-          iex> grant_params(@config, redirect_uri: "https://boom") |> Grants.insert(@config) |> errors_on()
+          iex> grant_params(redirect_uri: "https://boom") |> Grants.insert() |> errors_on()
           %{redirect_uri: ["does not match client"]}
       """
-      @spec insert(map, Charon.Config.t()) ::
-              {:ok, @grant_schema.t()} | {:error, Changeset.t()}
-      def insert(params, config) do
-        params |> @grant_schema.insert_only_changeset(config) |> @repo.insert()
-      end
+      @spec insert(map) :: {:ok, @grant_schema.t()} | {:error, Changeset.t()}
+      def insert(params), do: params |> @grant_schema.insert_only_changeset() |> @repo.insert()
 
       @doc """
       Delete a grant.
@@ -94,7 +91,7 @@ defmodule CharonOauth2.GenEctoMod.Grants do
           iex> {:error, :not_found} = Grants.delete(id: -1)
 
           # succesfully deletes a grant
-          iex> grant = insert_test_grant(@config)
+          iex> grant = insert_test_grant()
           iex> {:ok, _} = Grants.delete([id: grant.id])
           iex> {:error, :not_found} = Grants.delete([id: grant.id])
       """
@@ -111,8 +108,8 @@ defmodule CharonOauth2.GenEctoMod.Grants do
 
       ## Examples / doctests
 
-          iex> valid = insert_test_grant(@config)
-          iex> expired = insert_test_grant(@config)
+          iex> valid = insert_test_grant()
+          iex> expired = insert_test_grant()
           iex> past = DateTime.from_unix!(System.os_time(:second) - 10)
           iex> from(t in Grant, where: t.id == ^expired.id) |> Repo.update_all(set: [expires_at: past])
           iex> Grants.delete_expired()
