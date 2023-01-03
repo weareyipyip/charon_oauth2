@@ -35,6 +35,7 @@ defmodule CharonOauth2.GenEctoMod.Client do
         field(:scopes, SeparatedString, pattern: ",")
         field(:grant_types, SeparatedString, pattern: ",")
         field(:client_type, :string, default: "confidential")
+        field(:description, :string)
 
         has_many(:authorizations, @auth_schema)
 
@@ -53,7 +54,15 @@ defmodule CharonOauth2.GenEctoMod.Client do
               Changeset.t()
       def changeset(struct_or_cs \\ %__MODULE__{}, params) do
         struct_or_cs
-        |> cast(params, [:name, :redirect_uris, :scopes, :grant_types, :client_type, :secret])
+        |> cast(params, [
+          :name,
+          :redirect_uris,
+          :scopes,
+          :grant_types,
+          :client_type,
+          :secret,
+          :description
+        ])
         |> validate_required([:name, :redirect_uris, :scopes, :grant_types, :client_type])
         |> multifield_apply([:redirect_uris, :scopes, :grant_types], &to_set/2)
         |> validate_inclusion(:client_type, @client_types,
@@ -94,6 +103,7 @@ defmodule CharonOauth2.GenEctoMod.Client do
         end)
         # always randomly (re)generate the secret
         |> update_change(:secret, fn _ -> CharonInternal.random_url_encoded(32) end)
+        |> validate_length(:description, max: 250)
       end
 
       @doc """

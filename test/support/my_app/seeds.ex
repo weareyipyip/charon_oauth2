@@ -13,7 +13,8 @@ defmodule MyApp.Seeds do
     name: "MyApp",
     redirect_uris: [@redirect_uri],
     scopes: ~w(read),
-    grant_types: ~w(authorization_code)
+    grant_types: ~w(authorization_code),
+    description: "Incredible app that totally respects your privacy."
   }
 
   def client_params(overrides \\ []) do

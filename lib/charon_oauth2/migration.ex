@@ -30,6 +30,7 @@ defmodule CharonOauth2.Migration do
       add(:scopes, {:array, :text}, null: false)
       add(:grant_types, {:array, :text}, null: false)
       add(:client_type, :text, null: false)
+      add(:description, :text)
 
       add(
         :owner_id,
