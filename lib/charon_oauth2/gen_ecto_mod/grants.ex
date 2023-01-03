@@ -7,9 +7,9 @@ defmodule CharonOauth2.GenEctoMod.Grants do
       Context to manage grants
       """
       require Logger
-
       alias CharonOauth2.Internal
-      import Ecto.Query, only: [from: 2]
+      import Ecto.Query, only: [from: 2, where: 3, limit: 2, offset: 2, order_by: 2]
+      import Internal.Ecto
 
       @grant_schema unquote(grant_schema)
       @repo unquote(repo)
@@ -48,10 +48,30 @@ defmodule CharonOauth2.GenEctoMod.Grants do
 
           iex> insert_test_grant()
           iex> [%Grant{}] = Grants.all()
+
+          # can be filtered
+          iex> grant = insert_test_grant()
+          iex> [%Grant{}] = Grants.all(%{authorization_id: grant.authorization_id})
+          iex> [%Grant{}] = Grants.all(%{code: grant.code})
+          iex> [] = Grants.all(%{authorization_id: grant.authorization_id + 1})
       """
-      @spec all([atom]) :: [@grant_schema.t()]
-      def all(preloads \\ []) do
-        preloads |> @grant_schema.preload() |> @repo.all()
+      @spec all(%{required(atom) => any}, [atom]) :: [@grant_schema.t()]
+      def all(filters \\ %{}, preloads \\ []) do
+        base_query = @grant_schema.preload(preloads)
+
+        filters
+        |> Enum.reduce(base_query, fn
+          {:id, v}, q -> where(q, [g], g.id == ^v)
+          {:code, v}, q -> where(q, [g], g.code == ^v)
+          {:redirect_uri, v}, q -> where(q, [g], g.redirect_uri == ^v)
+          {:type, v}, q -> where(q, [g], g.type == ^v)
+          {:authorization_id, v}, q -> where(q, [g], g.authorization_id == ^v)
+          {:limit, v}, q -> limit(q, ^v)
+          {:offset, v}, q -> offset(q, ^v)
+          {:order_by, v}, q -> order_by(q, ^v)
+          {k, _v}, _ -> raise "can't filter grant query by #{k}"
+        end)
+        |> @repo.all()
       end
 
       @doc """

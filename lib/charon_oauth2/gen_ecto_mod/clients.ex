@@ -7,6 +7,8 @@ defmodule CharonOauth2.GenEctoMod.Clients do
       Context to manage clients
       """
       alias CharonOauth2.Internal
+      import Ecto.Query, only: [where: 3, limit: 2, offset: 2, order_by: 2]
+      import Internal.Ecto
 
       @client_schema unquote(client_schema)
       @repo unquote(repo)
@@ -43,10 +45,32 @@ defmodule CharonOauth2.GenEctoMod.Clients do
 
           iex> client = insert_test_client()
           iex> [^client] = Clients.all()
+
+          # can be filtered
+          iex> client = insert_test_client()
+          iex> [^client] = Clients.all(%{owner_id: client.owner_id})
+          iex> [^client] = Clients.all(%{grant_types: "authorization_code"})
+          iex> [] = Clients.all(%{owner_id: client.owner_id + 1})
       """
-      @spec all([atom]) :: [@client_schema.t()]
-      def all(preloads \\ []) do
-        preloads |> @client_schema.preload() |> @repo.all()
+      @spec all(%{required(atom) => any}, [atom]) :: [@client_schema.t()]
+      def all(filters \\ %{}, preloads \\ []) do
+        base_query = @client_schema.preload(preloads)
+
+        filters
+        |> Enum.reduce(base_query, fn
+          {:id, v}, q -> where(q, [c], c.id == ^v)
+          {:name, v}, q -> where(q, [c], c.name == ^v)
+          {:client_type, v}, q -> where(q, [c], c.client_type == ^v)
+          {:owner_id, v}, q -> where(q, [c], c.owner_id == ^v)
+          {:scopes, v}, q -> where(q, [c], set_contains_any(c.scopes, [v]))
+          {:grant_types, v}, q -> where(q, [c], set_contains_any(c.grant_types, [v]))
+          {:redirect_uris, v}, q -> where(q, [c], set_contains_any(c.redirect_uris, [v]))
+          {:limit, v}, q -> limit(q, ^v)
+          {:offset, v}, q -> offset(q, ^v)
+          {:order_by, v}, q -> order_by(q, ^v)
+          {k, _v}, _ -> raise "can't filter client query by #{k}"
+        end)
+        |> @repo.all()
       end
 
       @doc """

@@ -5,8 +5,10 @@ defmodule CharonOauth2.GenEctoMod.Authorizations do
       Context to manage authorizations
       """
       require Logger
-
+      import Ecto.Query, only: [where: 3, limit: 2, offset: 2, order_by: 2]
       alias CharonOauth2.Internal
+      import Internal.Ecto
+
       @authorization_schema unquote(authorization_schema)
       @repo unquote(repo)
 
@@ -40,10 +42,29 @@ defmodule CharonOauth2.GenEctoMod.Authorizations do
 
           iex> insert_test_authorization()
           iex> [%Authorization{}] = Authorizations.all()
+
+          # can be filtered
+          iex> authorization = insert_test_authorization()
+          iex> [%Authorization{}] = Authorizations.all(%{resource_owner_id: authorization.resource_owner_id})
+          iex> [%Authorization{}] = Authorizations.all(%{scopes: authorization.scopes |> List.first()})
+          iex> [] = Authorizations.all(%{resource_owner_id: authorization.resource_owner_id + 1})
       """
-      @spec all([atom]) :: [@authorization_schema.t()]
-      def all(preloads \\ []) do
-        preloads |> @authorization_schema.preload() |> @repo.all()
+      @spec all(%{required(atom) => any}, [atom]) :: [@authorization_schema.t()]
+      def all(filters \\ %{}, preloads \\ []) do
+        base_query = @authorization_schema.preload(preloads)
+
+        filters
+        |> Enum.reduce(base_query, fn
+          {:id, v}, q -> where(q, [a], a.id == ^v)
+          {:client_id, v}, q -> where(q, [a], a.client_id == ^v)
+          {:resource_owner_id, v}, q -> where(q, [a], a.resource_owner_id == ^v)
+          {:scopes, v}, q -> where(q, [a], set_contains_any(a.scopes, [v]))
+          {:limit, v}, q -> limit(q, ^v)
+          {:offset, v}, q -> offset(q, ^v)
+          {:order_by, v}, q -> order_by(q, ^v)
+          {k, _v}, _ -> raise "can't filter authorization query by #{k}"
+        end)
+        |> @repo.all()
       end
 
       @doc """
