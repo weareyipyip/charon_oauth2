@@ -54,6 +54,17 @@ defmodule MyApp.Seeds do
     @default_grant_params
     |> Map.merge(Map.new(overrides))
     |> Map.put_new_lazy(:authorization_id, fn -> insert_test_authorization().id end)
+    |> case do
+      map = %{resource_owner_id: _} ->
+        map
+
+      map = %{authorization_id: auth_id} ->
+        if auth = Authorizations.get_by(id: auth_id) do
+          Map.put(map, :resource_owner_id, auth.resource_owner_id)
+        else
+          Map.put(map, :resource_owner_id, -1)
+        end
+    end
   end
 
   def insert_test_grant(overrides \\ []) do

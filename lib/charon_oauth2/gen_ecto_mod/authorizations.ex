@@ -108,12 +108,12 @@ defmodule CharonOauth2.GenEctoMod.Authorizations do
           iex> insert_test_authorization() |> Authorizations.update(%{scopes: ~w(write write)}) |> errors_on()
           %{scopes: ["client not allowed to access scope(s): write"]}
 
-          # # client and resource owner can't be updated
-          # iex> %{client_id: client_id, resource_owner_id: owner_id} = insert_test_authorization()
-          # iex> {:ok, %{client_id: ^client_id, resource_owner_id: ^owner_id}} = Authorizations.update([id: id], %{client_id: -1, owner_id: -1})
+          # client and resource owner can't be updated
+          iex> %{id: id, client_id: client_id, resource_owner_id: owner_id} = insert_test_authorization()
+          iex> {:ok, %{client_id: ^client_id, resource_owner_id: ^owner_id}} = Authorizations.update([id: id], %{client_id: -1, owner_id: -1})
       """
-      @spec update(@authorization_schema.t() | keyword(), map) ::
-              {:ok, @authorization_schema.t()} | {:error, Changeset.t()}
+      @spec update(@authorization_schema.t() | keyword() | map(), map) ::
+              {:ok, @authorization_schema.t()} | {:error, Changeset.t()} | {:error, :not_found}
       def update(authorization = %@authorization_schema{}, params) do
         authorization
         |> @authorization_schema.changeset(params)
@@ -137,7 +137,7 @@ defmodule CharonOauth2.GenEctoMod.Authorizations do
           iex> {:ok, _} = Authorizations.delete([id: authorization.id])
           iex> {:error, :not_found} = Authorizations.delete([id: authorization.id])
       """
-      @spec delete(@authorization_schema.t() | keyword) ::
+      @spec delete(@authorization_schema.t() | keyword | map) ::
               {:ok, @authorization_schema.t()} | {:error, :not_found}
       def delete(authorization = %@authorization_schema{}), do: @repo.delete(authorization)
 

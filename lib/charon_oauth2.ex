@@ -40,8 +40,7 @@ defmodule CharonOauth2 do
       grant_schema = Grant.generate(@authorization_schema, charon_config)
       client_schema = Client.generate(@authorization_schema, charon_config)
 
-      auth_schema =
-        Authorization.generate(@user_schema, @client_schema, @grant_schema, charon_config)
+      auth_schema = Authorization.generate(@client_schema, @grant_schema, charon_config)
 
       # generate a dummy module to suppress "assoc not found warnings"
       Module.create(

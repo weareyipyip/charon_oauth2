@@ -83,11 +83,15 @@ defmodule CharonOauth2.GenEctoMod.Grants do
           iex> {:ok, _} = grant_params() |> Grants.insert()
 
           iex> Grants.insert(%{}) |> errors_on()
-          %{authorization_id: ["can't be blank"], redirect_uri: ["can't be blank"], type: ["can't be blank"]}
+          %{authorization_id: ["can't be blank"], redirect_uri: ["can't be blank"], type: ["can't be blank"], resource_owner_id: ["can't be blank"]}
 
           # authorization must exist
           iex> grant_params(authorization_id: -1) |> Grants.insert() |> errors_on()
           %{authorization: ["does not exist"]}
+
+          # resource owner must exist and must match the authorization's owner
+          iex> grant_params(resource_owner_id: -1) |> Grants.insert() |> errors_on()
+          %{authorization_id: ["belongs to other resource owner"]}
 
           # type must be one of client grant_type's
           iex> client = insert_test_client(grant_types: ~w(refresh_token))
@@ -115,7 +119,7 @@ defmodule CharonOauth2.GenEctoMod.Grants do
           iex> {:ok, _} = Grants.delete([id: grant.id])
           iex> {:error, :not_found} = Grants.delete([id: grant.id])
       """
-      @spec delete(@grant_schema.t() | keyword) ::
+      @spec delete(@grant_schema.t() | keyword | map) ::
               {:ok, @grant_schema.t()} | {:error, :not_found}
       def delete(grant = %@grant_schema{}), do: @repo.delete(grant)
 

@@ -18,7 +18,7 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
     end
   end
 
-  def generate(resource_owner_schema, client_schema, grant_schema, config) do
+  def generate(client_schema, grant_schema, config) do
     quote generated: true do
       @moduledoc """
       An authorization represents the permission granted by a resource owner (usually a user)
@@ -36,7 +36,7 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
       @mod_config Internal.get_module_config(@config)
       @grant_schema unquote(grant_schema)
       @client_schema unquote(client_schema)
-      @res_owner_schema unquote(resource_owner_schema)
+      @res_owner_schema @mod_config.resource_owner_schema
       @app_scopes @mod_config.scopes |> Map.keys()
 
       @type t :: %__MODULE__{}
@@ -49,7 +49,7 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
           type: Internal.column_type_to_ecto_type(@mod_config.resource_owner_id_type)
         )
 
-        belongs_to(:client, @client_schema, type: :binary_id)
+        belongs_to(:client, @client_schema, type: Ecto.UUID)
         has_many(:grants, @grant_schema)
 
         timestamps(type: :utc_datetime)

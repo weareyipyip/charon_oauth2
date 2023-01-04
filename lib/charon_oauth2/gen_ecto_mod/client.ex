@@ -27,7 +27,7 @@ defmodule CharonOauth2.GenEctoMod.Client do
       @grant_types ~w(authorization_code refresh_token)
       @autogen_secret {CharonInternal, :random_url_encoded, [32]}
 
-      @primary_key {:id, :binary_id, autogenerate: true}
+      @primary_key {:id, Ecto.UUID, autogenerate: true}
       schema @mod_config.client_table do
         field(:name, :string)
         field(:secret, Encrypted, redact: true, autogenerate: @autogen_secret, config: @config)

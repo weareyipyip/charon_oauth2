@@ -128,8 +128,8 @@ defmodule CharonOauth2.GenEctoMod.Clients do
           iex> %{id: id, owner_id: owner_id} = insert_test_client()
           iex> {:ok, %{id: ^id, owner_id: ^owner_id}} = Clients.update([id: id], %{id: Ecto.UUID.generate(), owner_id: -1})
       """
-      @spec update(@client_schema.t() | keyword(), map) ::
-              {:ok, @client_schema.t()} | {:error, Changeset.t()}
+      @spec update(@client_schema.t() | keyword() | map, map) ::
+              {:ok, @client_schema.t()} | {:error, Changeset.t()} | {:error, :not_found}
       def update(client = %@client_schema{}, params) do
         client |> @client_schema.changeset(params) |> @repo.update()
       end
@@ -151,7 +151,7 @@ defmodule CharonOauth2.GenEctoMod.Clients do
           iex> {:ok, _} = Clients.delete([id: client.id])
           iex> {:error, :not_found} = Clients.delete([id: client.id])
       """
-      @spec delete(@client_schema.t() | keyword) ::
+      @spec delete(@client_schema.t() | keyword | map) ::
               {:ok, @client_schema.t()} | {:error, :not_found}
       def delete(client = %@client_schema{}), do: @repo.delete(client)
 

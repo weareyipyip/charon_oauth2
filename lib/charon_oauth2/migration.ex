@@ -80,10 +80,21 @@ defmodule CharonOauth2.Migration do
         null: false
       )
 
+      add(
+        :resource_owner_id,
+        references(resource_owner_table,
+          on_delete: :delete_all,
+          column: resource_owner_id_column,
+          type: resource_owner_id_type
+        ),
+        null: false
+      )
+
       timestamps(type: :utc_datetime)
     end
 
     create(index(mod_config.grant_table, [:authorization_id]))
+    create(index(mod_config.grant_table, [:resource_owner_id]))
     create(unique_index(mod_config.grant_table, [:code]))
   end
 end

@@ -21,6 +21,7 @@ defmodule CharonOauth2.GenEctoMod.Grant do
       @config unquote(config)
       @mod_config Internal.get_module_config(@config)
       @auth_schema unquote(authorization_schema)
+      @res_owner_schema @mod_config.resource_owner_schema
 
       @types ~w(authorization_code)
       @autogen_code {CharonInternal, :random_url_encoded, [32]}
@@ -33,6 +34,11 @@ defmodule CharonOauth2.GenEctoMod.Grant do
 
         belongs_to(:authorization, @auth_schema)
 
+        belongs_to(:resource_owner, @res_owner_schema,
+          references: @mod_config.resource_owner_id_column,
+          type: Internal.column_type_to_ecto_type(@mod_config.resource_owner_id_type)
+        )
+
         timestamps(type: :utc_datetime)
       end
 
@@ -43,27 +49,31 @@ defmodule CharonOauth2.GenEctoMod.Grant do
               Changeset.t()
       def insert_only_changeset(struct_or_cs \\ %__MODULE__{}, params) do
         struct_or_cs
-        |> cast(params, [:redirect_uri, :type, :authorization_id])
-        |> validate_required([:redirect_uri, :type, :authorization_id])
+        |> cast(params, [:redirect_uri, :type, :authorization_id, :resource_owner_id])
+        |> validate_required([:redirect_uri, :type, :authorization_id, :resource_owner_id])
         |> validate_inclusion(:type, @types, message: "must be one of: #{Enum.join(@types, ", ")}")
         |> prepare_changes(fn cs = %{data: data} ->
           redirect_uri = get_field(cs, :redirect_uri)
           type = get_field(cs, :type)
           auth_id = get_field(cs, :authorization_id)
+          res_owner_id = get_field(cs, :resource_owner_id)
 
           with authorization = %{client: client} <-
                  @auth_schema.preload(:client) |> cs.repo.get(auth_id),
                {_, true} <- {:uri, redirect_uri in client.redirect_uris},
-               {_, true} <- {:type, type in client.grant_types} do
+               {_, true} <- {:type, type in client.grant_types},
+               {_, true} <- {:res_own, res_owner_id == authorization.resource_owner_id} do
             %{cs | data: %{data | authorization: authorization}}
           else
-            {:uri, false} -> add_error(cs, :redirect_uri, "does not match client")
-            {:type, false} -> add_error(cs, :type, "not supported by client")
+            {:uri, _} -> add_error(cs, :redirect_uri, "does not match client")
+            {:type, _} -> add_error(cs, :type, "not supported by client")
+            {:res_own, _} -> add_error(cs, :authorization_id, "belongs to other resource owner")
             nil -> cs
           end
         end)
         |> unique_constraint(:code)
         |> assoc_constraint(:authorization)
+        |> assoc_constraint(:resource_owner)
         |> put_change(
           :expires_at,
           DateTime.from_unix!(@mod_config.grant_ttl + CharonInternal.now())
