@@ -132,6 +132,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
 
       defp upsert_authorization(user_id, req_params = %{client_id: client_id}) do
         ids = %{client_id: client_id, resource_owner_id: user_id}
+        # scope is not updated if the parameter is not present
         params = req_params |> Map.take([:scope]) |> Map.merge(ids)
         getter = fn -> @auth_context.get_by(ids) end
         update = fn auth -> @auth_context.update(auth, params) end

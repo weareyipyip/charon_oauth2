@@ -190,7 +190,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           [
             session_type: :oauth2,
             access_claim_overrides: %{"cid" => cid, "scope" => scope},
-            refresh_claim_overrides: %{"cid" => cid, "scope" => scope}
+            refresh_claim_overrides: %{"cid" => cid}
           ]
         ]
         |> mod_conf.customize_session_upsert_args.()
