@@ -7,12 +7,12 @@ defmodule MyApp.Seeds do
   @config MyApp.CharonOauth2.Config.get()
   @mod_config Internal.get_module_config(@config)
 
-  @redirect_uri "http://stuff"
+  @redirect_uri "https://stuff"
 
   @default_client_params %{
     name: "MyApp",
     redirect_uris: [@redirect_uri],
-    scopes: ~w(read),
+    scope: ~w(read),
     grant_types: ~w(authorization_code),
     description: "Incredible app that totally respects your privacy."
   }
@@ -33,7 +33,7 @@ defmodule MyApp.Seeds do
     User.changeset() |> Repo.insert!()
   end
 
-  @default_authorization_params %{scopes: ~w(read)}
+  @default_authorization_params %{scope: ~w(read)}
 
   def authorization_params(overrides \\ []) do
     id_field = @mod_config.resource_owner_id_column

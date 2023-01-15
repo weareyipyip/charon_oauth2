@@ -27,7 +27,7 @@ defmodule CharonOauth2.Migration do
       add(:name, :text, null: false)
       add(:secret, :binary, null: false)
       add(:redirect_uris, {:array, :text}, null: false)
-      add(:scopes, {:array, :text}, null: false)
+      add(:scope, {:array, :text}, null: false)
       add(:grant_types, {:array, :text}, null: false)
       add(:client_type, :text, null: false)
       add(:description, :text)
@@ -62,7 +62,7 @@ defmodule CharonOauth2.Migration do
         null: false
       )
 
-      add(:scopes, {:array, :text}, null: false)
+      add(:scope, {:array, :text}, null: false)
 
       timestamps(type: :utc_datetime)
     end
@@ -75,6 +75,8 @@ defmodule CharonOauth2.Migration do
       add(:redirect_uri, :text)
       add(:type, :text, null: false)
       add(:expires_at, :utc_datetime, null: false)
+      add(:code_challenge, :binary)
+      add(:redirect_uri_is_default, :boolean)
 
       add(:authorization_id, references(mod_config.authorization_table, on_delete: :delete_all),
         null: false

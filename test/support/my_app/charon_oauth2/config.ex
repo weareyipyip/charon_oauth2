@@ -1,12 +1,18 @@
 defmodule MyApp.CharonOauth2.Config do
   def get_secret(), do: "supersecret"
+  def get_auth_uri, do: "https://mywebapp.com/authorize"
 
   @config Charon.Config.from_enum(
             token_issuer: "stuff",
             get_base_secret: &__MODULE__.get_secret/0,
+            session_store_module: Charon.SessionStore.DummyStore,
             optional_modules: %{
               CharonOauth2 => %{
-                scopes: %{"read" => "Read stuff in MyApp", "write" => "Write stuff in MyApp"},
+                scopes: %{
+                  "read" => "Read stuff in MyApp",
+                  "write" => "Write stuff in MyApp",
+                  "party" => "Party with MyApp"
+                },
                 resource_owner_schema: MyApp.User,
                 repo: MyApp.Repo
               }

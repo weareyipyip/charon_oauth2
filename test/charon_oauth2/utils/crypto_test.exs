@@ -1,6 +1,6 @@
-defmodule CharonOauth2.Internal.CryptoTest do
+defmodule CharonOauth2.Utils.CryptoTest do
   use ExUnit.Case, async: true
-  import CharonOauth2.Internal.Crypto
+  import CharonOauth2.Utils.Crypto
 
   @key :crypto.strong_rand_bytes(32)
   @wrong_key :crypto.strong_rand_bytes(32)

@@ -38,11 +38,14 @@ defmodule CharonOauth2.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:ecto, "~> 3.5"},
+      {:ecto_sql, "~> 3.0"},
+      {:plug, "~> 1.11"},
+      {:charon, git: "https://github.com/weareyipyip/charon.git", branch: "prep-charon-oauth2"},
       {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false},
-      {:ecto, "~> 3.0"},
-      {:charon, path: "/home/juul/Projects/YipYip/charon"},
-      {:ecto_sql, "~> 3.6", only: [:dev, :test]},
-      {:postgrex, ">= 0.0.0", only: [:dev, :test]}
+      {:postgrex, ">= 0.0.0", only: [:dev, :test]},
+      {:jason, "~> 1.4", only: [:dev, :test]},
+      {:mix_test_watch, "~> 1.0", only: [:dev], runtime: false}
     ]
   end
 

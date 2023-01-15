@@ -1,14 +1,14 @@
-defmodule CharonOauth2.GenEctoMod.Clients do
-  @moduledoc "Generate an app's Clients module."
+defmodule CharonOauth2.Internal.GenMod.Clients do
+  @moduledoc false
 
-  def generate(client_schema, repo) do
+  def generate(%{client: client_schema}, repo) do
     quote do
       @moduledoc """
       Context to manage clients
       """
       alias CharonOauth2.Internal
       import Ecto.Query, only: [where: 3, limit: 2, offset: 2, order_by: 2]
-      import Internal.Ecto
+      import Internal
 
       @client_schema unquote(client_schema)
       @repo unquote(repo)
@@ -16,8 +16,6 @@ defmodule CharonOauth2.GenEctoMod.Clients do
       @doc """
       Get a single client by one or more clauses, optionally with preloads.
       Returns nil if Client cannot be found.
-
-      Supported preloads: `#{inspect(@client_schema.supported_preloads())}`
 
       ## Doctests
 
@@ -31,15 +29,13 @@ defmodule CharonOauth2.GenEctoMod.Clients do
           iex> insert_test_grant(authorization_id: auth.id)
           iex> %{owner: %{id: _}, authorizations: [_]} = Clients.get_by([id: client.id], Client.supported_preloads)
       """
-      @spec get_by(keyword | map, [atom]) :: @client_schema.t() | nil
+      @spec get_by(keyword | map, [@client_schema.resolvable]) :: @client_schema.t() | nil
       def get_by(clauses, preloads \\ []) do
         preloads |> @client_schema.preload() |> @repo.get_by(clauses)
       end
 
       @doc """
       Get a list of all oauth2 clients.
-
-      Supported preloads: `#{inspect(@client_schema.supported_preloads())}`
 
       ## Doctests
 
@@ -52,7 +48,7 @@ defmodule CharonOauth2.GenEctoMod.Clients do
           iex> [^client] = Clients.all(%{grant_types: "authorization_code"})
           iex> [] = Clients.all(%{owner_id: client.owner_id + 1})
       """
-      @spec all(%{required(atom) => any}, [atom]) :: [@client_schema.t()]
+      @spec all(%{required(atom) => any}, [@client_schema.resolvable]) :: [@client_schema.t()]
       def all(filters \\ %{}, preloads \\ []) do
         base_query = @client_schema.preload(preloads)
 
@@ -62,7 +58,7 @@ defmodule CharonOauth2.GenEctoMod.Clients do
           {:name, v}, q -> where(q, [c], c.name == ^v)
           {:client_type, v}, q -> where(q, [c], c.client_type == ^v)
           {:owner_id, v}, q -> where(q, [c], c.owner_id == ^v)
-          {:scopes, v}, q -> where(q, [c], set_contains_any(c.scopes, [v]))
+          {:scope, v}, q -> where(q, [c], set_contains_any(c.scope, [v]))
           {:grant_types, v}, q -> where(q, [c], set_contains_any(c.grant_types, [v]))
           {:redirect_uris, v}, q -> where(q, [c], set_contains_any(c.redirect_uris, [v]))
           {:limit, v}, q -> limit(q, ^v)
@@ -88,7 +84,7 @@ defmodule CharonOauth2.GenEctoMod.Clients do
           %{owner: ["does not exist"]}
 
           iex> Clients.insert(%{}) |> errors_on()
-          %{grant_types: ["can't be blank"], name: ["can't be blank"], owner_id: ["can't be blank"], redirect_uris: ["can't be blank"], scopes: ["can't be blank"]}
+          %{grant_types: ["can't be blank"], name: ["can't be blank"], owner_id: ["can't be blank"], redirect_uris: ["can't be blank"], scope: ["can't be blank"]}
       """
       @spec insert(map) :: {:ok, @client_schema.t()} | {:error, Changeset.t()}
       def insert(params) do
@@ -115,14 +111,14 @@ defmodule CharonOauth2.GenEctoMod.Clients do
 
           # scopes must be subset of configured scopes
           iex> client = insert_test_client()
-          iex> Clients.update([id: client.id], %{scopes: ~w(cry)}) |> errors_on()
-          %{scopes: ["must be subset of read, write"]}
+          iex> Clients.update([id: client.id], %{scope: ~w(cry)}) |> errors_on()
+          %{scope: ["must be subset of party, read, write"]}
 
           # underlying authrorization scopes are reduced to client's reduced scopes
-          iex> client = insert_test_client(scopes: ~w(read write))
-          iex> authorization = insert_test_authorization(client_id: client.id, scopes: ~w(read write))
-          iex> {:ok, _} = Clients.update([id: client.id], %{scopes: ~w(read)})
-          iex> %{scopes: ~w(read)} = Authorizations.get_by(id: authorization.id)
+          iex> client = insert_test_client(scope: ~w(read write))
+          iex> authorization = insert_test_authorization(client_id: client.id, scope: ~w(read write))
+          iex> {:ok, _} = Clients.update([id: client.id], %{scope: ~w(read)})
+          iex> %{scope: ~w(read)} = Authorizations.get_by(id: authorization.id)
 
           # id and owner id can't be updated
           iex> %{id: id, owner_id: owner_id} = insert_test_client()
@@ -135,7 +131,7 @@ defmodule CharonOauth2.GenEctoMod.Clients do
       end
 
       def update(clauses, params) do
-        Internal.get_and_do(fn -> get_by(clauses) end, &update(&1, params), @repo)
+        get_and_do(fn -> get_by(clauses) end, &update(&1, params), @repo)
       end
 
       @doc """
@@ -156,7 +152,7 @@ defmodule CharonOauth2.GenEctoMod.Clients do
       def delete(client = %@client_schema{}), do: @repo.delete(client)
 
       def delete(clauses) do
-        Internal.get_and_do(fn -> get_by(clauses) end, &delete/1, @repo)
+        get_and_do(fn -> get_by(clauses) end, &delete/1, @repo)
       end
     end
   end

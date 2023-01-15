@@ -6,7 +6,7 @@ defmodule CharonOauth2.Types.Hmac do
 
   Requires a column of type `:binary`.
   """
-  alias Charon.Internal.KeyGenerator
+  alias Charon.Utils.KeyGenerator
   alias Ecto.ParameterizedType
   use ParameterizedType
 
@@ -37,5 +37,5 @@ defmodule CharonOauth2.Types.Hmac do
   # Private #
   ###########
 
-  defp get_key(config), do: KeyGenerator.get_secret(@salt, 32, config)
+  defp get_key(config), do: KeyGenerator.derive_key(config.get_base_secret.(), @salt)
 end

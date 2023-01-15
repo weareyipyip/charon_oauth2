@@ -16,12 +16,14 @@ defmodule CharonOauth2.Config do
     :repo,
     :resource_owner_schema,
     :scopes,
-    grant_ttl: 15 * 60,
+    grant_ttl: 10 * 60,
     grant_table: "charon_oauth2_grants",
     client_table: "charon_oauth2_clients",
     authorization_table: "charon_oauth2_authorizations",
     resource_owner_id_column: :id,
-    resource_owner_id_type: :bigserial
+    resource_owner_id_type: :bigserial,
+    customize_session_upsert_args: &Function.identity/1,
+    verify_refresh_token: &CharonOauth2.verify_refresh_token/2
   ]
 
   @type t :: %__MODULE__{scopes: [String.t()], grant_ttl: pos_integer()}

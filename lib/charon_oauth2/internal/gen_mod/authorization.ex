@@ -1,5 +1,5 @@
-defmodule CharonOauth2.GenEctoMod.Authorization do
-  @moduledoc "Generate an app's Authorization module."
+defmodule CharonOauth2.Internal.GenMod.Authorization do
+  @moduledoc false
 
   def gen_dummy(config) do
     quote generated: true do
@@ -18,17 +18,19 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
     end
   end
 
-  def generate(client_schema, grant_schema, config) do
+  def generate(%{grant: grant_schema, client: client_schema}, config) do
     quote generated: true do
       @moduledoc """
       An authorization represents the permission granted by a resource owner (usually a user)
       to an application to act on their behalf within certain limits (determined by scopes).
+
+      Field `:scope` is guaranteed to be an ordset (`:ordsets`).
       """
-      use Ecto.Schema
-      import Ecto.Changeset
-      import Ecto.Query, except: [preload: 2, preload: 3]
-      alias Ecto.Query
-      alias CharonOauth2.Types.SeparatedString
+      alias Ecto.{Query, Changeset, Schema}
+      use Schema
+      import Changeset
+      import Query, except: [preload: 2, preload: 3]
+      alias CharonOauth2.Types.SeparatedStringOrdset
       alias CharonOauth2.Internal
       import Internal
 
@@ -37,12 +39,20 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
       @grant_schema unquote(grant_schema)
       @client_schema unquote(client_schema)
       @res_owner_schema @mod_config.resource_owner_schema
-      @app_scopes @mod_config.scopes |> Map.keys()
+      @app_scopes @mod_config.scopes |> Map.keys() |> :ordsets.from_list()
 
       @type t :: %__MODULE__{}
+      @typedoc "Bindings / preloads that can be used with `resolve_binding/2` and `preload/2`"
+      @type resolvable ::
+              :resource_owner
+              | :resource_owner_grants
+              | :client
+              | :client_owner
+              | :grants
+              | :grants_resource_owner
 
       schema @mod_config.authorization_table do
-        field(:scopes, SeparatedString, pattern: ",")
+        field(:scope, SeparatedStringOrdset, pattern: [",", " "])
 
         belongs_to(:resource_owner, @res_owner_schema,
           references: @mod_config.resource_owner_id_column,
@@ -61,16 +71,17 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
       @spec changeset(__MODULE__.t() | Changeset.t(), map()) :: Changeset.t()
       def changeset(struct_or_cs \\ %__MODULE__{}, params) do
         struct_or_cs
-        |> cast(params, [:scopes])
-        |> validate_required([:scopes])
-        |> multifield_apply([:scopes], &to_set/2)
-        |> validate_subset(:scopes, @app_scopes,
-          message: "must be subset of #{Enum.join(@app_scopes, ", ")}"
+        |> cast(params, [:scope])
+        |> validate_required([:scope])
+        |> validate_sub_ordset(
+          :scope,
+          @app_scopes,
+          "must be subset of #{Enum.join(@app_scopes, ", ")}"
         )
-        |> prepare_changes(fn cs = %{data: data, changes: %{scopes: scopes}} ->
+        |> prepare_changes(fn cs = %{data: data, changes: %{scope: scopes}} ->
           with <<client_id::binary>> <- get_field(cs, :client_id),
-               client = %{scopes: client_scopes} <- cs.repo.get(@client_schema, client_id),
-               [] <- scopes -- client_scopes do
+               client = %{scope: client_scopes} <- cs.repo.get(@client_schema, client_id),
+               [] <- :ordsets.subtract(scopes, client_scopes) do
             %{cs | data: %{data | client: client}}
           else
             nil ->
@@ -78,7 +89,7 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
 
             scopes ->
               scopes = Enum.join(scopes, ", ")
-              add_error(cs, :scopes, "client not allowed to access scope(s): #{scopes}")
+              add_error(cs, :scope, "client not allowed to access scope(s): #{scopes}")
           end
         end)
       end
@@ -113,7 +124,7 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
       @doc """
       Resolve named bindings that are not present in the query by (left-)joining to the appropriate tables.
       """
-      @spec resolve_binding(Query.t(), atom()) :: Query.t()
+      @spec resolve_binding(Query.t(), resolvable) :: Query.t()
       def resolve_binding(query, named_binding) do
         if has_named_binding?(query, named_binding) do
           query
@@ -128,14 +139,33 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
                 as: :resource_owner
               )
 
+            :resource_owner_grants ->
+              query
+              |> resolve_binding(:resource_owner)
+              |> join(:left, [resource_owner: ro], g in assoc(ro, :grants),
+                as: :resource_owner_grants
+              )
+
             :client ->
               join(query, :left, [charon_oauth2_authorization: a], ro in assoc(a, :client),
                 as: :client
               )
 
+            :client_owner ->
+              query
+              |> resolve_binding(:client)
+              |> join(:left, [client: c], o in assoc(c, :owner), as: :client_owner)
+
             :grants ->
               join(query, :left, [charon_oauth2_authorization: a], ro in assoc(a, :grants),
                 as: :grants
+              )
+
+            :grants_resource_owner ->
+              query
+              |> resolve_binding(:grants)
+              |> join(:left, [grants: g], ro in assoc(g, :resource_owner),
+                as: :grants_resource_owner
               )
           end
         end
@@ -144,7 +174,7 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
       @doc """
       Preload named bindings. Automatically joins using `resolve_binding/2`.
       """
-      @spec preload(Query.t(), atom | [atom]) :: Query.t()
+      @spec preload(Query.t(), resolvable | [resolvable]) :: Query.t()
       def preload(query \\ named_binding(), named_binding_or_bindings)
 
       def preload(query, named_binding) when is_atom(named_binding) do
@@ -154,18 +184,47 @@ defmodule CharonOauth2.GenEctoMod.Authorization do
             |> resolve_binding(:resource_owner)
             |> Query.preload([resource_owner: ro], resource_owner: ro)
 
+          :resource_owner_grants ->
+            query
+            |> resolve_binding(:resource_owner)
+            |> Query.preload([resource_owner: ro], resource_owner: {ro, :grants})
+
           :client ->
             query |> resolve_binding(:client) |> Query.preload([client: c], client: c)
 
+          :client_owner ->
+            query
+            |> resolve_binding(:client_owner)
+            |> Query.preload([client: c, client_owner: o], client: {c, owner: o})
+
           :grants ->
             Query.preload(query, :grants)
+
+          :grants_resource_owner ->
+            subq =
+              from(g in @grant_schema,
+                left_join: ro in assoc(g, :resource_owner),
+                preload: [resource_owner: ro]
+              )
+
+            Query.preload(query, grants: ^subq)
         end
       end
 
       def preload(query, list), do: Enum.reduce(list, query, &preload(&2, &1))
 
       @doc false
-      def supported_preloads(), do: ~w(resource_owner client grants)a
+      # used for tests
+      def supported_preloads() do
+        [
+          :resource_owner,
+          :resource_owner_grants,
+          :client,
+          :client_owner,
+          :grants,
+          :grants_resource_owner
+        ]
+      end
     end
   end
 end

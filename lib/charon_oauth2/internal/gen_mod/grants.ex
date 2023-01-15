@@ -1,7 +1,7 @@
-defmodule CharonOauth2.GenEctoMod.Grants do
-  @moduledoc "Generate an app's Grants module."
+defmodule CharonOauth2.Internal.GenMod.Grants do
+  @moduledoc false
 
-  def generate(grant_schema, repo) do
+  def generate(%{grant: grant_schema}, repo) do
     quote do
       @moduledoc """
       Context to manage grants
@@ -9,7 +9,7 @@ defmodule CharonOauth2.GenEctoMod.Grants do
       require Logger
       alias CharonOauth2.Internal
       import Ecto.Query, only: [from: 2, where: 3, limit: 2, offset: 2, order_by: 2]
-      import Internal.Ecto
+      import Internal
 
       @grant_schema unquote(grant_schema)
       @repo unquote(repo)
@@ -17,8 +17,6 @@ defmodule CharonOauth2.GenEctoMod.Grants do
       @doc """
       Get a single grant by one or more clauses, optionally with preloads.
       Returns nil if Grant cannot be found.
-
-      Supported preloads: `#{inspect(@grant_schema.supported_preloads())}`
 
       ## Doctests
 
@@ -34,15 +32,13 @@ defmodule CharonOauth2.GenEctoMod.Grants do
           iex> %{id: id, code: code} = insert_test_grant()
           iex> ^id = Grants.get_by(code: code).id
       """
-      @spec get_by(keyword | map, [atom]) :: @grant_schema.t() | nil
+      @spec get_by(keyword | map, [@grant_schema.resolvable]) :: @grant_schema.t() | nil
       def get_by(clauses, preloads \\ []) do
         preloads |> @grant_schema.preload() |> @repo.get_by(clauses)
       end
 
       @doc """
       Get a list of all oauth2 grants.
-
-      Supported preloads: `#{inspect(@grant_schema.supported_preloads())}`
 
       ## Doctests
 
@@ -55,7 +51,7 @@ defmodule CharonOauth2.GenEctoMod.Grants do
           iex> [%Grant{}] = Grants.all(%{code: grant.code})
           iex> [] = Grants.all(%{authorization_id: grant.authorization_id + 1})
       """
-      @spec all(%{required(atom) => any}, [atom]) :: [@grant_schema.t()]
+      @spec all(%{required(atom) => any}, [@grant_schema.resolvable]) :: [@grant_schema.t()]
       def all(filters \\ %{}, preloads \\ []) do
         base_query = @grant_schema.preload(preloads)
 
@@ -83,7 +79,7 @@ defmodule CharonOauth2.GenEctoMod.Grants do
           iex> {:ok, _} = grant_params() |> Grants.insert()
 
           iex> Grants.insert(%{}) |> errors_on()
-          %{authorization_id: ["can't be blank"], redirect_uri: ["can't be blank"], type: ["can't be blank"], resource_owner_id: ["can't be blank"]}
+          %{authorization_id: ["can't be blank"], type: ["can't be blank"], resource_owner_id: ["can't be blank"]}
 
           # authorization must exist
           iex> grant_params(authorization_id: -1) |> Grants.insert() |> errors_on()
@@ -101,6 +97,20 @@ defmodule CharonOauth2.GenEctoMod.Grants do
 
           # redirect_uri must be one of client redirect_uri's
           iex> grant_params(redirect_uri: "https://boom") |> Grants.insert() |> errors_on()
+          %{redirect_uri: ["does not match client"]}
+
+          # public clients require PKCE
+          iex> client = insert_test_client(client_type: "public")
+          iex> authorization = insert_test_authorization(client_id: client.id)
+          iex> grant_params(authorization_id: authorization.id) |> Grants.insert() |> errors_on()
+          %{code_challenge: ["can't be blank"]}
+
+          # redirect_uri is required if client has multiple uris set
+          iex> client = insert_test_client(redirect_uris: ~w(https://a https://b))
+          iex> authorization = insert_test_authorization(client_id: client.id)
+          iex> grant_params(authorization_id: authorization.id, redirect_uri: nil) |> Grants.insert() |> errors_on()
+          %{redirect_uri: ["can't be blank"]}
+          iex> grant_params(authorization_id: authorization.id, redirect_uri: "https://c") |> Grants.insert() |> errors_on()
           %{redirect_uri: ["does not match client"]}
       """
       @spec insert(map) :: {:ok, @grant_schema.t()} | {:error, Changeset.t()}
@@ -124,7 +134,7 @@ defmodule CharonOauth2.GenEctoMod.Grants do
       def delete(grant = %@grant_schema{}), do: @repo.delete(grant)
 
       def delete(clauses) do
-        Internal.get_and_do(fn -> get_by(clauses) end, &delete/1, @repo)
+        get_and_do(fn -> get_by(clauses) end, &delete/1, @repo)
       end
 
       @doc """
@@ -134,7 +144,7 @@ defmodule CharonOauth2.GenEctoMod.Grants do
 
           iex> valid = insert_test_grant()
           iex> expired = insert_test_grant()
-          iex> past = DateTime.from_unix!(System.os_time(:second) - 10)
+          iex> past = DateTime.utc_now() |> DateTime.add(-10)
           iex> from(t in Grant, where: t.id == ^expired.id) |> Repo.update_all(set: [expires_at: past])
           iex> Grants.delete_expired()
           iex> valid_id = valid.id

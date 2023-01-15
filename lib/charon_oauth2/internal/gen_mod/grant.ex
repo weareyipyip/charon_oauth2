@@ -1,5 +1,7 @@
-defmodule CharonOauth2.GenEctoMod.Grant do
-  def generate(authorization_schema, config) do
+defmodule CharonOauth2.Internal.GenMod.Grant do
+  @moduledoc false
+
+  def generate(%{authorization: authorization_schema}, config) do
     quote generated: true do
       @moduledoc """
       A grant is an (in-progress) Oauth2 flow to obtain auth tokens.
@@ -8,15 +10,21 @@ defmodule CharonOauth2.GenEctoMod.Grant do
       immediately returns an access token in response to the authorization request, and does
       not have a second exchange-code-for-token request-response cycle.
       """
-      use Ecto.Schema
-      import Ecto.Changeset
-      import Ecto.Query, except: [preload: 2, preload: 3]
-      alias Ecto.Query
-      alias CharonOauth2.Types.Hmac
+      alias Ecto.{Query, Changeset, Schema}
+      use Schema
+      import Changeset
+      import Query, except: [preload: 2, preload: 3]
+      alias CharonOauth2.Types.{Hmac, Encrypted}
       alias CharonOauth2.Internal
       alias Charon.Internal, as: CharonInternal
 
       @type t :: %__MODULE__{}
+      @typedoc "Bindings / preloads that can be used with `resolve_binding/2` and `preload/2`"
+      @type resolvable ::
+              :resource_owner
+              | :authorization
+              | :authorization_client
+              | :authorization_resource_owner
 
       @config unquote(config)
       @mod_config Internal.get_module_config(@config)
@@ -29,8 +37,10 @@ defmodule CharonOauth2.GenEctoMod.Grant do
       schema @mod_config.grant_table do
         field(:code, Hmac, autogenerate: @autogen_code, redact: true, config: @config)
         field(:redirect_uri, :string)
+        field(:redirect_uri_is_default, :boolean)
         field(:type, :string)
         field(:expires_at, :utc_datetime)
+        field(:code_challenge, Encrypted, redact: true, config: @config)
 
         belongs_to(:authorization, @auth_schema)
 
@@ -49,23 +59,32 @@ defmodule CharonOauth2.GenEctoMod.Grant do
               Changeset.t()
       def insert_only_changeset(struct_or_cs \\ %__MODULE__{}, params) do
         struct_or_cs
-        |> cast(params, [:redirect_uri, :type, :authorization_id, :resource_owner_id])
-        |> validate_required([:redirect_uri, :type, :authorization_id, :resource_owner_id])
+        |> cast(params, [
+          :redirect_uri,
+          :type,
+          :authorization_id,
+          :resource_owner_id,
+          :code_challenge
+        ])
+        |> validate_required([
+          :type,
+          :authorization_id,
+          :resource_owner_id
+        ])
         |> validate_inclusion(:type, @types, message: "must be one of: #{Enum.join(@types, ", ")}")
         |> prepare_changes(fn cs = %{data: data} ->
-          redirect_uri = get_field(cs, :redirect_uri)
           type = get_field(cs, :type)
           auth_id = get_field(cs, :authorization_id)
           res_owner_id = get_field(cs, :resource_owner_id)
 
           with authorization = %{client: client} <-
                  @auth_schema.preload(:client) |> cs.repo.get(auth_id),
-               {_, true} <- {:uri, redirect_uri in client.redirect_uris},
-               {_, true} <- {:type, type in client.grant_types},
+               {_, true} <- {:type, :ordsets.is_element(type, client.grant_types)},
                {_, true} <- {:res_own, res_owner_id == authorization.resource_owner_id} do
             %{cs | data: %{data | authorization: authorization}}
+            |> validate_redirect_uri(client)
+            |> maybe_require_pkce(type, client)
           else
-            {:uri, _} -> add_error(cs, :redirect_uri, "does not match client")
             {:type, _} -> add_error(cs, :type, "not supported by client")
             {:res_own, _} -> add_error(cs, :authorization_id, "belongs to other resource owner")
             nil -> cs
@@ -101,6 +120,11 @@ defmodule CharonOauth2.GenEctoMod.Grant do
           query
         else
           case named_binding do
+            :resource_owner ->
+              join(query, :left, [charon_oauth2_grant: c], ro in assoc(c, :resource_owner),
+                as: :resource_owner
+              )
+
             :authorization ->
               join(query, :left, [charon_oauth2_grant: c], a in assoc(c, :authorization),
                 as: :authorization
@@ -109,17 +133,14 @@ defmodule CharonOauth2.GenEctoMod.Grant do
             :authorization_client ->
               query
               |> resolve_binding(:authorization)
-              |> join(:left, [authorization: a], c in assoc(a, :client), as: :client)
+              |> join(:left, [authorization: a], c in assoc(a, :client), as: :authorization_client)
 
             :authorization_resource_owner ->
               query
               |> resolve_binding(:authorization)
               |> join(:left, [authorization: a], ro in assoc(a, :resource_owner),
-                as: :resource_owner
+                as: :authorization_resource_owner
               )
-
-            _ ->
-              query
           end
         end
       end
@@ -132,6 +153,11 @@ defmodule CharonOauth2.GenEctoMod.Grant do
 
       def preload(query, named_binding) when is_atom(named_binding) do
         case named_binding do
+          :resource_owner ->
+            query
+            |> resolve_binding(:resource_owner)
+            |> Query.preload([resource_owner: ro], resource_owner: ro)
+
           :authorization ->
             query
             |> resolve_binding(:authorization)
@@ -140,12 +166,14 @@ defmodule CharonOauth2.GenEctoMod.Grant do
           :authorization_client ->
             query
             |> resolve_binding(:authorization_client)
-            |> Query.preload([authorization: a, client: c], authorization: {a, client: c})
+            |> Query.preload([authorization: a, authorization_client: c],
+              authorization: {a, client: c}
+            )
 
           :authorization_resource_owner ->
             query
             |> resolve_binding(:authorization_resource_owner)
-            |> Query.preload([authorization: a, resource_owner: ro],
+            |> Query.preload([authorization: a, authorization_resource_owner: ro],
               authorization: {a, resource_owner: ro}
             )
         end
@@ -154,8 +182,42 @@ defmodule CharonOauth2.GenEctoMod.Grant do
       def preload(query, list), do: Enum.reduce(list, query, &preload(&2, &1))
 
       @doc false
-      def supported_preloads(),
-        do: ~w(authorization authorization_client authorization_resource_owner)a
+      # used for tests
+      def supported_preloads() do
+        [
+          :resource_owner,
+          :authorization,
+          :authorization_client,
+          :authorization_resource_owner
+        ]
+      end
+
+      ###########
+      # Private #
+      ###########
+
+      # require PKCE for authorization_code-type grants for public clients
+      defp maybe_require_pkce(changeset, "authorization_code", client = %{client_type: "public"}) do
+        validate_required(changeset, :code_challenge)
+      end
+
+      defp maybe_require_pkce(changeset, _grant_type, _client), do: changeset
+
+      # param redirect_uri is only required when multiple uris are configured for the client
+      defp validate_redirect_uri(cs, _client = %{redirect_uris: uris}) do
+        case uris do
+          [_] -> cs
+          _ -> validate_required(cs, :redirect_uri)
+        end
+        |> Internal.validate_ordset_element(:redirect_uri, uris, "does not match client")
+        |> then(fn cs ->
+          redirect_uri = cs.changes[:redirect_uri]
+
+          cs
+          |> put_change(:redirect_uri, redirect_uri || List.first(uris))
+          |> put_change(:redirect_uri_is_default, !redirect_uri)
+        end)
+      end
     end
   end
 end

@@ -1,5 +1,7 @@
-defmodule CharonOauth2.Internal.Crypto do
-  @moduledoc false
+defmodule CharonOauth2.Utils.Crypto do
+  @moduledoc """
+  Encrypt/decrypt data using ChaCha20.
+  """
   @encr_alg :chacha20
   @iv_size 16
 
