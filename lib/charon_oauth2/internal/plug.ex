@@ -4,9 +4,9 @@ defmodule CharonOauth2.Internal.Plug do
 
   def redirect(conn, to) do
     conn
-    |> put_resp_header("location", to)
+    |> put_resp_content_type("application/json")
     |> dont_cache()
-    |> send_resp(302, "")
+    |> send_resp(200, Jason.encode!(%{redirect_to: to}))
   end
 
   def dont_cache(conn) do

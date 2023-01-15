@@ -35,8 +35,8 @@ defmodule MyApp.TestUtils do
 
   def redir_response(conn, exp_redir_uri) do
     conn
-    |> assert_status(302)
-    |> get_resp_header("location")
+    |> json_response(200)
+    |> Map.get("redirect_to")
     |> URI.new!()
     |> tap(&assert !exp_redir_uri || &1.host == exp_redir_uri |> URI.new!() |> Map.get(:host))
     |> get_query_params()
