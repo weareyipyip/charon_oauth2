@@ -15,7 +15,7 @@ defmodule CharonOauth2.Internal.Plug do
 
   def redirect_with_query(conn, to, query_params) do
     query_params = query_params |> URI.encode_query()
-    to = to |> URI.new!() |> URI.append_query(query_params) |> URI.to_string()
+    to = to |> URI.new!() |> append_query(query_params) |> URI.to_string()
     redirect(conn, to)
   end
 
@@ -69,4 +69,17 @@ defmodule CharonOauth2.Internal.Plug do
 
   def put_non_nil(map, _key, _value = nil), do: map
   def put_non_nil(map, key, value), do: Map.put(map, key, value)
+
+  # nicked from Elixir 1.14, to support 1.13
+  defp append_query(%URI{} = uri, query) when uri.query in [nil, ""] do
+    %{uri | query: query}
+  end
+
+  defp append_query(%URI{} = uri, query) do
+    if String.ends_with?(uri.query, "&") do
+      %{uri | query: uri.query <> query}
+    else
+      %{uri | query: uri.query <> "&" <> query}
+    end
+  end
 end
