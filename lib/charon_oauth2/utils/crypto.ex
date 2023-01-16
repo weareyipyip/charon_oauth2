@@ -12,6 +12,8 @@ defmodule CharonOauth2.Utils.Crypto do
   def encrypt(plaintext, key) do
     iv = :crypto.strong_rand_bytes(@iv_size)
     # prefix a zero byte to detect decryption failure
+    # because it is only one byte there is a chance of failed decryption not being detected
+    # this is acceptable because it will fail really often and be quite clear from all the crashes
     prefixed_plaintext = [0 | plaintext]
     encrypted = :crypto.crypto_one_time(@encr_alg, key, iv, prefixed_plaintext, true)
     <<iv::binary, encrypted::binary>>
