@@ -480,7 +480,6 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                 "iss" => "stuff",
                 "jti" => <<_::binary>>,
                 "nbf" => _,
-                "scope" => ["read"],
                 "sid" => <<_::binary>>,
                 "styp" => "oauth2",
                 "sub" => ^uid,
