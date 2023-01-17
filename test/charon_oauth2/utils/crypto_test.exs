@@ -13,7 +13,10 @@ defmodule CharonOauth2.Utils.CryptoTest do
     end
 
     test "fails graciously" do
-      assert {:error, :decryption_failed} = "hello world" |> encrypt(@key) |> decrypt(@wrong_key)
+      assert {:error, :decryption_failed} =
+               <<159, 70, 130, 39, 86, 28, 250, 2, 68, 155, 255, 136, 37, 108, 191, 229, 119, 115,
+                 50, 159, 53, 42, 107, 147, 176, 82, 33, 38>>
+               |> decrypt(@wrong_key)
     end
   end
 end

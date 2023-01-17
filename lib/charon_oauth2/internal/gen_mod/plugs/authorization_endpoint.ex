@@ -11,13 +11,18 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
           ] do
       @moduledoc """
       The Oauth2 [authorization endpoint](https://www.rfc-editor.org/rfc/rfc6749#section-3.1).
-      This version is meant to be used by a first-party web client in which a user
-      can grant or deny access.
-      So it does not, by itself, behave as an oauth2 authorization endpoint
-      (for example, it only supports POST requests).
 
-      User must be logged-in using Charon
-      (at least `Charon.TokenPlugs.verify_token_signature/2` must be called on the conn.)
+      This endpoint is meant to be combined with a first-party web client in which a user can grant or deny access.
+      So it does not, by itself, behave as an oauth2 authorization endpoint (for example, it only supports POST requests).
+      The endpoint returns a JSON response with 200 OK and a `redirect_to` parameter,
+      that the web client should then, you know, redirect to.
+      The redirect may also contain an error result.
+      However, there are some errors that must not result in redirection,
+      for example errors in validating the redirect URI itself.
+      Such errors result in a 400 response with an error description,
+      that the companion web client may show to the user at its discretion.
+
+      User must be logged-in using Charon (at least `Charon.TokenPlugs.verify_token_signature/2` must be called on the conn.)
 
       ## Usage
 
@@ -44,7 +49,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
       def init(opts) do
         config = Keyword.fetch!(opts, :config)
         mod_conf = CharonOauth2.Internal.get_module_config(config)
-        scopes = mod_conf.scopes |> Map.keys() |> :ordsets.from_list()
+        scopes = mod_conf.scopes |> :ordsets.from_list()
         %{config: config, mod_conf: mod_conf, scopes: scopes}
       end
 

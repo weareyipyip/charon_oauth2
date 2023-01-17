@@ -70,6 +70,7 @@ defmodule CharonOauth2 do
 
       @moduledoc """
       Entrypoint module for CharonOauth2.
+
       The following submodules are generated:
       - `#{@authorization_schema}`
       - `#{@authorization_context}`

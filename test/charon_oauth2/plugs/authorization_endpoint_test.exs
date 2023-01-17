@@ -420,7 +420,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                resource_owner_id: ^uid,
                type: "authorization_code",
                redirect_uri: ^redir_uri,
-               redirect_uri_is_default: true
+               redirect_uri_specified: false
              } = Grants.get_by(code: code)
     end
 
@@ -443,7 +443,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> assert_dont_cache()
                |> redir_response("https://b")
 
-      assert %{redirect_uri: "https://b", redirect_uri_is_default: false} =
+      assert %{redirect_uri: "https://b", redirect_uri_specified: true} =
                Grants.get_by(code: code)
     end
   end

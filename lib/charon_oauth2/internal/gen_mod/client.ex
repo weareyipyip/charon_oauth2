@@ -7,6 +7,12 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       An Oauth2 (third-party) client application.
 
       Fields `:scope`, `:grant_types` and `:redirect_uris` are guaranteed to be ordsets (`:ordsets`).
+
+      The client secret is stored encrypted, not hashed, which is unusual for passwords-like secrets.
+      In line with, for example, GCP, we choose to be able to show the client secret again.
+      Also, the client secret is not a normal password but a 384 bits random string,
+      which does not require key stretching to prevent brute forcing
+      (although rate-limiting the token endpoint may still be desirable).
       """
       alias Ecto.{Query, Changeset, Schema}
       use Schema
@@ -31,7 +37,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       @auth_schema unquote(authorization_schema)
       @grant_schema unquote(grant_schema)
       @res_owner_schema @mod_config.resource_owner_schema
-      @app_scopes @mod_config.scopes |> Map.keys() |> :ordsets.from_list()
+      @app_scopes @mod_config.scopes |> :ordsets.from_list()
 
       @client_types ~w(confidential public)
       @grant_types ~w(authorization_code refresh_token) |> :ordsets.from_list()
@@ -39,7 +45,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       @autogen_secret {CharonInternal, :random_url_encoded, [@secret_bytesize]}
 
       @primary_key {:id, Ecto.UUID, autogenerate: true}
-      schema @mod_config.client_table do
+      schema @mod_config.clients_table do
         field(:name, :string)
         field(:secret, Encrypted, redact: true, autogenerate: @autogen_secret, config: @config)
         field(:redirect_uris, SeparatedStringOrdset, pattern: ",")

@@ -1,7 +1,8 @@
 defmodule CharonOauth2.Internal.AuthorizationValidator do
   @moduledoc false
   use Ecto.Schema
-  import Ecto.Changeset
+  alias Ecto.Changeset
+  import Changeset
   import CharonOauth2.Internal
   alias CharonOauth2.Types.SeparatedStringOrdset
 
@@ -30,6 +31,7 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
   That is why errors from this changeset should result in a 400,
   so that they can be shown to the user.
   """
+  @spec no_redirect_checks(map, module()) :: {:no_redirect, Changeset.t()}
   def no_redirect_checks(params, client_context) do
     %__MODULE__{}
     |> cast(params, [:client_id, :redirect_uri])
@@ -52,6 +54,7 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
   Parameters must be "valid", that is, present, of the right type, with sane values etc.
   Otherwise we redirect "invalid_request" to the oauth2 client.
   """
+  @spec missing_invalid_or_malformed(Changeset.t(), map()) :: {:invalid, Changeset.t()}
   def missing_invalid_or_malformed(cs, params) do
     cs
     |> cast(params, [
@@ -74,6 +77,7 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
   other stuff can be wrong with the request depending on the client, the application scopes etc.
   Here we do those checks.
   """
+  @spec other_checks(Changeset.t(), map(), struct(), [String.t()]) :: Changeset.t()
   def other_checks(cs, params, client, scopes) do
     cs
     |> cast(params, [:permission_granted])

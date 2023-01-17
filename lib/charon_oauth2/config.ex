@@ -6,27 +6,66 @@ defmodule CharonOauth2.Config do
         ...,
         optional_modules: %{
           CharonOauth2 => %{
-            scopes: []
+            repo: MyApp.Repo,
+            resource_owner_schema: MyApp.User,
+            scopes: ~w(profile:read door:open),
+            # following are defaults
+            authorizations_table: "charon_oauth2_authorizations",
+            clients_table: "charon_oauth2_clients",
+            customize_session_upsert_args: &Function.identity/1,
+            grants_table: "charon_oauth2_grants",
+            grant_ttl: 10 * 60,
+            resource_owner_id_column: :id,
+            resource_owner_id_type: :bigserial,
+            verify_refresh_token: &CharonOauth2.verify_refresh_token/2
           }
         }
       )
+
+  ## Supported config options
+
+   - `:repo` (required) the Ecto repo module of your application.
+   - `:resource_owner_schema` (required) the user schema module of your application.
+   - `:scopes` (required) the scopes that are available to Oauth2 apps, application-wide.
+   - `:authorizations_table` the name of the table in which to store authorizations.
+   - `:clients_table` the name of the table in which to store clients.
+   - `:customize_session_upsert_args` a function that you can use to customize the arguments that are passed by your `MyApp.TokenEndpoint` to `Charon.SessionPlugs.upsert_session/3`. Be careful, usually you might want to add to these arguments, but not override them.
+   - `:grant_ttl` time in seconds that a grant (mostly authorization code) takes to expire
+   - `:grants_table` the name of the table in which to store grants
+   - `:resource_owner_id_column` the column name, as an atom, of the resource owner's schema's primary key
+   - `:resource_owner_id_type` the type, as an atom, of the resource owner's schema's primary key
+   - `:verify_refresh_token` a function that you can use to verify an Oauth2 refresh token for the refresh token grant.
+
   """
   @enforce_keys [:scopes, :repo, :resource_owner_schema]
   defstruct [
     :repo,
     :resource_owner_schema,
     :scopes,
+    authorizations_table: "charon_oauth2_authorizations",
+    clients_table: "charon_oauth2_clients",
+    customize_session_upsert_args: &Function.identity/1,
+    grants_table: "charon_oauth2_grants",
+    # ten minutes
     grant_ttl: 10 * 60,
-    grant_table: "charon_oauth2_grants",
-    client_table: "charon_oauth2_clients",
-    authorization_table: "charon_oauth2_authorizations",
     resource_owner_id_column: :id,
     resource_owner_id_type: :bigserial,
-    customize_session_upsert_args: &Function.identity/1,
     verify_refresh_token: &CharonOauth2.verify_refresh_token/2
   ]
 
-  @type t :: %__MODULE__{scopes: [String.t()], grant_ttl: pos_integer()}
+  @type t :: %__MODULE__{
+          authorizations_table: String.t(),
+          clients_table: String.t(),
+          customize_session_upsert_args: ([...] -> [...]),
+          grant_ttl: pos_integer(),
+          grants_table: String.t(),
+          repo: module(),
+          resource_owner_id_column: atom(),
+          resource_owner_id_type: atom(),
+          resource_owner_schema: module(),
+          scopes: [String.t()],
+          verify_refresh_token: (Plug.Conn.t(), Charon.Config.t() -> Plug.Conn.t())
+        }
 
   @doc """
   Build config struct from enumerable (useful for passing in application environment).

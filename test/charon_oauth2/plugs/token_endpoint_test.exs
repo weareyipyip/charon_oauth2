@@ -27,6 +27,46 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                conn(:post, "/test") |> TokenEndpoint.call(seeds.opts) |> assert_dont_cache()
     end
 
+    test "parses content-type x-www-form-urlencoded", seeds do
+      conn(
+        :post,
+        "/",
+        %{
+          grant_type: "authorization_code",
+          code: seeds.grant.code,
+          client_id: seeds.client.id,
+          redirect_uri: seeds.grant.redirect_uri,
+          client_secret: seeds.client.secret
+        }
+        |> Enum.map(fn {k, v} -> "#{k}=#{URI.encode_www_form(v)}" end)
+        |> Enum.join("&")
+      )
+      |> put_req_header("content-type", "application/x-www-form-urlencoded")
+      |> TokenEndpoint.call(seeds.opts)
+      |> assert_dont_cache()
+      |> json_response(200)
+    end
+
+    test "rejects other content types", seeds do
+      assert_raise Plug.Parsers.UnsupportedMediaTypeError, fn ->
+        conn(:post, "/", "whatevs")
+        |> put_req_header("content-type", "whatevs")
+        |> TokenEndpoint.call(seeds.opts)
+        |> assert_dont_cache()
+        |> json_response(200)
+      end
+    end
+
+    test "validates utf8 content", seeds do
+      assert_raise Plug.Parsers.BadEncodingError, fn ->
+        conn(:post, "/", "BOOM=\xc3\x28")
+        |> put_req_header("content-type", "application/x-www-form-urlencoded")
+        |> TokenEndpoint.call(seeds.opts)
+        |> assert_dont_cache()
+        |> json_response(200)
+      end
+    end
+
     test "all parameters must be castable", seeds do
       assert %{
                "error" => "invalid_request",
@@ -311,7 +351,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> assert_dont_cache()
                |> json_response(400)
 
-      seeds.grant |> change(%{redirect_uri_is_default: true}) |> Repo.update!()
+      seeds.grant |> change(%{redirect_uri_specified: false}) |> Repo.update!()
 
       conn(:post, "/", %{
         grant_type: "authorization_code",
@@ -340,7 +380,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> assert_dont_cache()
                |> json_response(400)
 
-      seeds.grant |> change(%{redirect_uri_is_default: true}) |> Repo.update!()
+      seeds.grant |> change(%{redirect_uri_specified: true}) |> Repo.update!()
 
       assert %{
                "error" => "invalid_grant",
@@ -373,6 +413,25 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                  client_id: seeds.client.id,
                  redirect_uri: seeds.grant.redirect_uri,
                  client_secret: seeds.client.secret
+               })
+               |> TokenEndpoint.call(seeds.opts)
+               |> assert_dont_cache()
+               |> json_response(400)
+    end
+
+    test "(PKCE) code_verifier is forbidden if no code challenge was issued", seeds do
+      assert %{
+               "error" => "invalid_request",
+               "error_description" =>
+                 "code_verifier: no challenge issued in authorization request"
+             } ==
+               conn(:post, "/", %{
+                 grant_type: "authorization_code",
+                 code: seeds.grant.code,
+                 client_id: seeds.client.id,
+                 redirect_uri: seeds.grant.redirect_uri,
+                 client_secret: seeds.client.secret,
+                 code_verifier: "boom"
                })
                |> TokenEndpoint.call(seeds.opts)
                |> assert_dont_cache()

@@ -34,10 +34,10 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
       @types ~w(authorization_code)
       @autogen_code {CharonInternal, :random_url_encoded, [32]}
 
-      schema @mod_config.grant_table do
+      schema @mod_config.grants_table do
         field(:code, Hmac, autogenerate: @autogen_code, redact: true, config: @config)
         field(:redirect_uri, :string)
-        field(:redirect_uri_is_default, :boolean)
+        field(:redirect_uri_specified, :boolean)
         field(:type, :string)
         field(:expires_at, :utc_datetime)
         field(:code_challenge, Encrypted, redact: true, config: @config)
@@ -215,7 +215,7 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
 
           cs
           |> put_change(:redirect_uri, redirect_uri || List.first(uris))
-          |> put_change(:redirect_uri_is_default, !redirect_uri)
+          |> put_change(:redirect_uri_specified, not is_nil(redirect_uri))
         end)
       end
     end
