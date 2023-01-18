@@ -224,7 +224,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           config,
           [
             session_type: :oauth2,
-            access_claim_overrides: %{"cid" => cid, "scope" => scope},
+            access_claim_overrides: %{"cid" => cid, "scope" => MapSet.to_list(scope)},
             refresh_claim_overrides: %{"cid" => cid}
           ]
         ]

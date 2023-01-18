@@ -228,6 +228,6 @@ defmodule CharonOauth2.Internal.TokenValidator do
   # the grant type must be enabled for the client,
   # in addition to being supported by the server in the first place
   defp validate_client_grant_type(cs, _client = %{grant_types: grant_types}) do
-    validate_ordset_element(cs, :grant_type, grant_types, "unsupported by client")
+    validate_mapset_contains(cs, :grant_type, grant_types, "unsupported by client")
   end
 end

@@ -81,7 +81,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
       |> AuthorizationEndpoint.call(seeds.opts)
       |> assert_dont_cache()
       # redirect means no redirect_uri error
-      |> redir_response(seeds.client.redirect_uris |> List.first())
+      |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "redirect_uri required for client with multiple redirect_uris", seeds do
@@ -137,7 +137,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "state is optional", seeds do
@@ -154,7 +154,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "response_type must be set", seeds do
@@ -170,7 +170,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "response_type and code_challenge_method must be recognized", seeds do
@@ -191,7 +191,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "params must be valid", seeds do
@@ -212,7 +212,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "permission_granted must be set by our own client (JSON 400 resp)", seeds do
@@ -264,7 +264,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "scope must be enabled for client", seeds do
@@ -283,7 +283,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "scope must be known", seeds do
@@ -302,7 +302,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
   end
 
@@ -324,7 +324,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "new authorization is created with requested params", seeds do
@@ -341,12 +341,13 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
 
       uid = seeds.user.id
       cid = seeds.client.id
 
-      assert [%{scope: ~w(read), resource_owner_id: ^uid, client_id: ^cid}] = Authorizations.all()
+      assert [%{scope: scope, resource_owner_id: ^uid, client_id: ^cid}] = Authorizations.all()
+      assert ~w(read) = MapSet.to_list(scope)
     end
 
     test "scope is not required for an existing authorization", seeds do
@@ -364,7 +365,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "existing authorization scope is updated to request scope", seeds do
@@ -389,9 +390,10 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
 
-      assert [%{scope: ~w(write)}] = Authorizations.all()
+      assert [%{scope: scope}] = Authorizations.all()
+      assert ~w(write) = MapSet.to_list(scope)
     end
 
     test "new grant is created for authorization / user", seeds do
@@ -399,7 +401,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
       cid = seeds.client.id
       auth = insert_test_authorization(client_id: cid, resource_owner_id: uid)
       aid = auth.id
-      [redir_uri] = seeds.client.redirect_uris
+      [redir_uri] = seeds.client.redirect_uris |> MapSet.to_list()
 
       assert %{"code" => code, "state" => "teststate"} =
                conn(:post, "/", %{
@@ -413,7 +415,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
 
       assert %{
                authorization_id: ^aid,
@@ -466,7 +468,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "code_challenge_method is required and must be S256 if code_challenge is set", seeds do
@@ -486,7 +488,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
 
       assert %{
                "error" => "invalid_request",
@@ -505,7 +507,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
     end
 
     test "code challenge is stored in grant for token endpoint", seeds do
@@ -522,7 +524,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
+               |> redir_response(seeds.client.redirect_uris |> MapSet.to_list() |> List.first())
 
       assert %{code_challenge: "test"} = Grants.get_by(code: code)
     end

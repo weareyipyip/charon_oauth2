@@ -49,7 +49,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
       def init(opts) do
         config = Keyword.fetch!(opts, :config)
         mod_conf = CharonOauth2.Internal.get_module_config(config)
-        scopes = mod_conf.scopes |> :ordsets.from_list()
+        scopes = mod_conf.scopes |> MapSet.new()
         %{config: config, mod_conf: mod_conf, scopes: scopes}
       end
 

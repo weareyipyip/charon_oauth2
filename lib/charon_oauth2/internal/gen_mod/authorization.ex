@@ -23,14 +23,12 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
       @moduledoc """
       An authorization represents the permission granted by a resource owner (usually a user)
       to an application to act on their behalf within certain limits (determined by scopes).
-
-      Field `:scope` is guaranteed to be an ordset (`:ordsets`).
       """
       alias Ecto.{Query, Changeset, Schema}
       use Schema
       import Changeset
       import Query, except: [preload: 2, preload: 3]
-      alias CharonOauth2.Types.SeparatedStringOrdset
+      alias CharonOauth2.Types.SeparatedStringMapSet
       alias CharonOauth2.Internal
       import Internal
 
@@ -39,7 +37,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
       @grant_schema unquote(grant_schema)
       @client_schema unquote(client_schema)
       @res_owner_schema @mod_config.resource_owner_schema
-      @app_scopes @mod_config.scopes |> :ordsets.from_list()
+      @app_scopes @mod_config.scopes |> MapSet.new()
 
       @type t :: %__MODULE__{}
       @typedoc "Bindings / preloads that can be used with `resolve_binding/2` and `preload/2`"
@@ -52,7 +50,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
               | :grants_resource_owner
 
       schema @mod_config.authorizations_table do
-        field(:scope, SeparatedStringOrdset, pattern: [",", " "])
+        field(:scope, SeparatedStringMapSet, pattern: [",", " "])
 
         belongs_to(:resource_owner, @res_owner_schema,
           references: @mod_config.resource_owner_id_column,
@@ -73,7 +71,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
         struct_or_cs
         |> cast(params, [:scope])
         |> validate_required([:scope])
-        |> validate_sub_ordset(
+        |> validate_mapset_contains(
           :scope,
           @app_scopes,
           "must be subset of #{Enum.join(@app_scopes, ", ")}"
@@ -81,7 +79,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
         |> prepare_changes(fn cs = %{data: data, changes: %{scope: scopes}} ->
           with <<client_id::binary>> <- get_field(cs, :client_id),
                client = %{scope: client_scopes} <- cs.repo.get(@client_schema, client_id),
-               [] <- :ordsets.subtract(scopes, client_scopes) do
+               [] <- MapSet.difference(scopes, client_scopes) |> MapSet.to_list() do
             %{cs | data: %{data | client: client}}
           else
             nil ->

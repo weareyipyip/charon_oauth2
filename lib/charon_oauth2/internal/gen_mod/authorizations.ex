@@ -45,7 +45,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorizations do
           # can be filtered
           iex> authorization = insert_test_authorization()
           iex> [%Authorization{}] = Authorizations.all(%{resource_owner_id: authorization.resource_owner_id})
-          iex> [%Authorization{}] = Authorizations.all(%{scope: authorization.scope |> List.first()})
+          iex> [%Authorization{}] = Authorizations.all(%{scope: authorization.scope |> MapSet.to_list() |> List.first()})
           iex> [] = Authorizations.all(%{resource_owner_id: authorization.resource_owner_id + 1})
       """
       @spec all(%{required(atom) => any}, [@authorization_schema.resolvable]) ::

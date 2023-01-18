@@ -4,7 +4,7 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
   alias Ecto.Changeset
   import Changeset
   import CharonOauth2.Internal
-  alias CharonOauth2.Types.SeparatedStringOrdset
+  alias CharonOauth2.Types.SeparatedStringMapSet
 
   @primary_key false
   embedded_schema do
@@ -12,7 +12,7 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
     field :client_id, Ecto.UUID
     field :redirect_uri, :string
     field :resolved_redir_uri, :string
-    field :scope, SeparatedStringOrdset, pattern: [" ", ","]
+    field :scope, SeparatedStringMapSet, pattern: [" ", ","]
     field :state, :string
     field :code_challenge, :string
     field :code_challenge_method, :string
@@ -77,12 +77,12 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
   other stuff can be wrong with the request depending on the client, the application scopes etc.
   Here we do those checks.
   """
-  @spec other_checks(Changeset.t(), map(), struct(), [String.t()]) :: Changeset.t()
+  @spec other_checks(Changeset.t(), map(), struct(), MapSet.t(String.t())) :: Changeset.t()
   def other_checks(cs, params, client, scopes) do
     cs
     |> cast(params, [:permission_granted])
     |> validate_required([:permission_granted])
-    |> validate_sub_ordset(:scope, scopes, "known scopes are #{Enum.join(scopes, ", ")}")
+    |> validate_mapset_contains(:scope, scopes, "known scopes are #{Enum.join(scopes, ", ")}")
     |> validate_client_scopes(client)
     |> validate_inclusion(:response_type, @supported_response_types, message: "is unsupported")
     |> validate_client_response_type(client)
@@ -113,14 +113,15 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
 
   # param redirect_uri is only required when multiple uris are configured for the client
   defp validate_client_redirect_uri(cs, _client = %{redirect_uris: uris}) do
-    case uris do
-      [_] -> cs
-      _ -> validate_required(cs, :redirect_uri)
+    if MapSet.size(uris) == 1 do
+      cs
+    else
+      validate_required(cs, :redirect_uri)
     end
-    |> validate_ordset_element(:redirect_uri, uris)
+    |> validate_mapset_contains(:redirect_uri, uris, "invalid entry")
     |> case do
       cs = %{valid?: true} ->
-        resolved_uri = cs.changes[:redirect_uri] || List.first(uris)
+        resolved_uri = cs.changes[:redirect_uri] || uris |> MapSet.to_list() |> List.first()
         put_change(cs, :resolved_redir_uri, resolved_uri)
 
       cs ->
@@ -134,7 +135,7 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
     |> validate_change(:response_type, fn _, value ->
       grant_type = Map.get(@response_type_to_grant_type, value)
 
-      if :ordsets.is_element(grant_type, grant_types) do
+      if MapSet.member?(grant_types, grant_type) do
         []
       else
         [response_type: "not supported by client"]
@@ -146,7 +147,7 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
 
   # scopes must be enabled for client
   defp validate_client_scopes(cs = %{valid?: true}, %{scope: scopes}) do
-    validate_sub_ordset(cs, :scope, scopes, "client supports #{Enum.join(scopes, ", ")}")
+    validate_mapset_contains(cs, :scope, scopes, "client supports #{Enum.join(scopes, ", ")}")
   end
 
   defp validate_client_scopes(cs, _), do: cs

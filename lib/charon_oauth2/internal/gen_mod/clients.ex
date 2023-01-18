@@ -115,10 +115,11 @@ defmodule CharonOauth2.Internal.GenMod.Clients do
           %{scope: ["must be subset of party, read, write"]}
 
           # underlying authrorization scopes are reduced to client's reduced scopes
-          iex> client = insert_test_client(scope: ~w(read write))
-          iex> authorization = insert_test_authorization(client_id: client.id, scope: ~w(read write))
+          iex> client = insert_test_client(scope: ~w(read write party))
+          iex> authorization = insert_test_authorization(client_id: client.id, scope: ~w(read write party))
           iex> {:ok, _} = Clients.update([id: client.id], %{scope: ~w(read)})
-          iex> %{scope: ~w(read)} = Authorizations.get_by(id: authorization.id)
+          iex> Authorizations.get_by(id: authorization.id).scope
+          MapSet.new(["read"])
 
           # id and owner id can't be updated
           iex> %{id: id, owner_id: owner_id} = insert_test_client()

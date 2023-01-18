@@ -79,7 +79,7 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
 
           with authorization = %{client: client} <-
                  @auth_schema.preload(:client) |> cs.repo.get(auth_id),
-               {_, true} <- {:type, :ordsets.is_element(type, client.grant_types)},
+               {_, true} <- {:type, MapSet.member?(client.grant_types, type)},
                {_, true} <- {:res_own, res_owner_id == authorization.resource_owner_id} do
             %{cs | data: %{data | authorization: authorization}}
             |> validate_redirect_uri(client)
@@ -205,16 +205,17 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
 
       # param redirect_uri is only required when multiple uris are configured for the client
       defp validate_redirect_uri(cs, _client = %{redirect_uris: uris}) do
-        case uris do
-          [_] -> cs
-          _ -> validate_required(cs, :redirect_uri)
+        if MapSet.size(uris) == 1 do
+          cs
+        else
+          validate_required(cs, :redirect_uri)
         end
-        |> Internal.validate_ordset_element(:redirect_uri, uris, "does not match client")
+        |> Internal.validate_mapset_contains(:redirect_uri, uris, "does not match client")
         |> then(fn cs ->
           redirect_uri = cs.changes[:redirect_uri]
 
           cs
-          |> put_change(:redirect_uri, redirect_uri || List.first(uris))
+          |> put_change(:redirect_uri, redirect_uri || uris |> MapSet.to_list() |> List.first())
           |> put_change(:redirect_uri_specified, not is_nil(redirect_uri))
         end)
       end

@@ -6,8 +6,6 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       @moduledoc """
       An Oauth2 (third-party) client application.
 
-      Fields `:scope`, `:grant_types` and `:redirect_uris` are guaranteed to be ordsets (`:ordsets`).
-
       The client secret is stored encrypted, not hashed, which is unusual for passwords-like secrets.
       In line with, for example, GCP, we choose to be able to show the client secret again.
       Also, the client secret is not a normal password but a 384 bits random string,
@@ -18,7 +16,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       use Schema
       import Changeset
       import Query, except: [preload: 2, preload: 3]
-      alias CharonOauth2.Types.{SeparatedStringOrdset, Encrypted}
+      alias CharonOauth2.Types.{SeparatedStringMapSet, Encrypted}
       alias CharonOauth2.Internal
       import CharonOauth2.Internal
       alias Charon.Internal, as: CharonInternal
@@ -37,10 +35,10 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       @auth_schema unquote(authorization_schema)
       @grant_schema unquote(grant_schema)
       @res_owner_schema @mod_config.resource_owner_schema
-      @app_scopes @mod_config.scopes |> :ordsets.from_list()
+      @app_scopes @mod_config.scopes |> MapSet.new()
 
       @client_types ~w(confidential public)
-      @grant_types ~w(authorization_code refresh_token) |> :ordsets.from_list()
+      @grant_types ~w(authorization_code refresh_token) |> MapSet.new()
       @secret_bytesize 48
       @autogen_secret {CharonInternal, :random_url_encoded, [@secret_bytesize]}
 
@@ -48,9 +46,9 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       schema @mod_config.clients_table do
         field(:name, :string)
         field(:secret, Encrypted, redact: true, autogenerate: @autogen_secret, config: @config)
-        field(:redirect_uris, SeparatedStringOrdset, pattern: ",")
-        field(:scope, SeparatedStringOrdset, pattern: [",", " "])
-        field(:grant_types, SeparatedStringOrdset, pattern: ",")
+        field(:redirect_uris, SeparatedStringMapSet, pattern: ",")
+        field(:scope, SeparatedStringMapSet, pattern: [",", " "])
+        field(:grant_types, SeparatedStringMapSet, pattern: ",")
         field(:client_type, :string, default: "confidential")
         field(:description, :string)
 
@@ -84,12 +82,12 @@ defmodule CharonOauth2.Internal.GenMod.Client do
         |> validate_inclusion(:client_type, @client_types,
           message: "must be one of: #{Enum.join(@client_types, ", ")}"
         )
-        |> validate_sub_ordset(
+        |> validate_mapset_contains(
           :grant_types,
           @grant_types,
           "must be subset of #{Enum.join(@grant_types, ", ")}"
         )
-        |> validate_sub_ordset(
+        |> validate_mapset_contains(
           :scope,
           @app_scopes,
           "must be subset of #{Enum.join(@app_scopes, ", ")}"
@@ -97,11 +95,13 @@ defmodule CharonOauth2.Internal.GenMod.Client do
         |> prepare_changes(fn
           cs = %{data: %{id: id, scope: current_scopes}, changes: %{scope: scopes}}
           when not is_nil(id) ->
-            if [] != (removed_scopes = :ordsets.subtract(current_scopes, scopes)) do
+            removed_scopes = MapSet.difference(current_scopes, scopes)
+
+            if MapSet.size(removed_scopes) != 0 do
               from(a in @auth_schema, where: a.client_id == ^id, select: {a.id, a.scope})
               |> cs.repo.all()
               |> Enum.each(fn {auth_id, auth_scopes} ->
-                auth_scopes = :ordsets.subtract(auth_scopes, removed_scopes)
+                auth_scopes = MapSet.difference(auth_scopes, removed_scopes)
 
                 {1, _} =
                   from(a in @auth_schema, where: a.id == ^auth_id)

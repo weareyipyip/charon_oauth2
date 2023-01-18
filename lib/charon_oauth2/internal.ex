@@ -9,17 +9,16 @@ defmodule CharonOauth2.Internal do
     Enum.reduce(fields, changeset, &function.(&2, &1))
   end
 
-  def validate_ordset_element(changeset, field, data, msg \\ "invalid entry") do
+  def validate_mapset_contains(changeset, field, data = %MapSet{}, msg \\ "has an invalid entry") do
     Changeset.validate_change(changeset, field, fn _, value ->
-      if :ordsets.is_element(value, data), do: [], else: [{field, msg}]
-    end)
-  end
+      value =
+        case value do
+          %MapSet{} -> value
+          list when is_list(value) -> MapSet.new(list)
+          _ -> MapSet.new([value])
+        end
 
-  @doc false
-  @spec validate_sub_ordset(Changeset.t(), atom, Enum.t(), String.t()) :: Changeset.t()
-  def validate_sub_ordset(changeset, field, data, msg \\ "has an invalid entry") do
-    Changeset.validate_change(changeset, field, fn _, value ->
-      if :ordsets.is_subset(value, data), do: [], else: [{field, msg}]
+      if MapSet.subset?(value, data), do: [], else: [{field, msg}]
     end)
   end
 
