@@ -22,7 +22,7 @@ defmodule CharonOauth2.Migration do
     resource_owner_id_column = mod_config.resource_owner_id_column
     resource_owner_id_type = mod_config.resource_owner_id_type
 
-    create table(mod_config.client_table, primary_key: false) do
+    create table(mod_config.clients_table, primary_key: false) do
       add(:id, :uuid, primary_key: true)
       add(:name, :text, null: false)
       add(:secret, :binary, null: false)
@@ -45,10 +45,10 @@ defmodule CharonOauth2.Migration do
       timestamps(type: :utc_datetime)
     end
 
-    create table(mod_config.authorization_table) do
+    create table(mod_config.authorizations_table) do
       add(
         :client_id,
-        references(mod_config.client_table, type: :uuid, on_delete: :delete_all),
+        references(mod_config.clients_table, type: :uuid, on_delete: :delete_all),
         null: false
       )
 
@@ -67,18 +67,18 @@ defmodule CharonOauth2.Migration do
       timestamps(type: :utc_datetime)
     end
 
-    create(unique_index(mod_config.authorization_table, [:client_id, :resource_owner_id]))
-    create(index(mod_config.authorization_table, [:resource_owner_id]))
+    create(unique_index(mod_config.authorizations_table, [:client_id, :resource_owner_id]))
+    create(index(mod_config.authorizations_table, [:resource_owner_id]))
 
-    create table(mod_config.grant_table) do
+    create table(mod_config.grants_table) do
       add(:code, :binary)
       add(:redirect_uri, :text)
       add(:type, :text, null: false)
       add(:expires_at, :utc_datetime, null: false)
       add(:code_challenge, :binary)
-      add(:redirect_uri_is_default, :boolean)
+      add(:redirect_uri_specified, :boolean)
 
-      add(:authorization_id, references(mod_config.authorization_table, on_delete: :delete_all),
+      add(:authorization_id, references(mod_config.authorizations_table, on_delete: :delete_all),
         null: false
       )
 
@@ -95,8 +95,8 @@ defmodule CharonOauth2.Migration do
       timestamps(type: :utc_datetime)
     end
 
-    create(index(mod_config.grant_table, [:authorization_id]))
-    create(index(mod_config.grant_table, [:resource_owner_id]))
-    create(unique_index(mod_config.grant_table, [:code]))
+    create(index(mod_config.grants_table, [:authorization_id]))
+    create(index(mod_config.grants_table, [:resource_owner_id]))
+    create(unique_index(mod_config.grants_table, [:code]))
   end
 end

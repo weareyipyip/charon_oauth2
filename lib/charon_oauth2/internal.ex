@@ -9,17 +9,13 @@ defmodule CharonOauth2.Internal do
     Enum.reduce(fields, changeset, &function.(&2, &1))
   end
 
-  def validate_ordset_element(changeset, field, data, msg \\ "invalid entry") do
+  @doc """
+  Validate that the ordset in `field` contains `data`.
+  If data is a list, it is assumed to be an ordset, and the value of `field` must be a subset of `data`.
+  """
+  def validate_ordset_contains(changeset, field, data, msg \\ "has an invalid entry") do
     Changeset.validate_change(changeset, field, fn _, value ->
-      if :ordsets.is_element(value, data), do: [], else: [{field, msg}]
-    end)
-  end
-
-  @doc false
-  @spec validate_sub_ordset(Changeset.t(), atom, Enum.t(), String.t()) :: Changeset.t()
-  def validate_sub_ordset(changeset, field, data, msg \\ "has an invalid entry") do
-    Changeset.validate_change(changeset, field, fn _, value ->
-      if :ordsets.is_subset(value, data), do: [], else: [{field, msg}]
+      if value |> List.wrap() |> :ordsets.is_subset(data), do: [], else: [{field, msg}]
     end)
   end
 

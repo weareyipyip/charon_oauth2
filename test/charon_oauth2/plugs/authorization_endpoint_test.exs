@@ -367,7 +367,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> redir_response(seeds.client.redirect_uris |> List.first())
     end
 
-    test "existing authorization scope is updated to request scope", seeds do
+    test "existing authorization's scope is expanded to request scope", seeds do
       client = insert_test_client(scope: ~w(read write))
 
       insert_test_authorization(
@@ -392,6 +392,33 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> redir_response(seeds.client.redirect_uris |> List.first())
 
       assert [%{scope: ~w(write)}] = Authorizations.all()
+    end
+
+    test "existing authorization's scope is NOT reduced to request scope", seeds do
+      client = insert_test_client(scope: ~w(read write))
+
+      insert_test_authorization(
+        client_id: client.id,
+        resource_owner_id: seeds.user.id,
+        scope: ~w(read write)
+      )
+
+      assert %{"code" => _, "state" => "teststate"} =
+               conn(:post, "/", %{
+                 client_id: client.id,
+                 response_type: "code",
+                 permission_granted: true,
+                 state: "teststate",
+                 scope: "write",
+                 code_challenge: "test",
+                 code_challenge_method: "S256"
+               })
+               |> login(seeds)
+               |> AuthorizationEndpoint.call(seeds.opts)
+               |> assert_dont_cache()
+               |> redir_response(seeds.client.redirect_uris |> List.first())
+
+      assert [%{scope: ~w(read write)}] = Authorizations.all()
     end
 
     test "new grant is created for authorization / user", seeds do
@@ -420,7 +447,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                resource_owner_id: ^uid,
                type: "authorization_code",
                redirect_uri: ^redir_uri,
-               redirect_uri_is_default: true
+               redirect_uri_specified: false
              } = Grants.get_by(code: code)
     end
 
@@ -443,7 +470,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> assert_dont_cache()
                |> redir_response("https://b")
 
-      assert %{redirect_uri: "https://b", redirect_uri_is_default: false} =
+      assert %{redirect_uri: "https://b", redirect_uri_specified: true} =
                Grants.get_by(code: code)
     end
   end

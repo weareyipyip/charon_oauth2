@@ -8,11 +8,7 @@ defmodule MyApp.CharonOauth2.Config do
             session_store_module: Charon.SessionStore.DummyStore,
             optional_modules: %{
               CharonOauth2 => %{
-                scopes: %{
-                  "read" => "Read stuff in MyApp",
-                  "write" => "Write stuff in MyApp",
-                  "party" => "Party with MyApp"
-                },
+                scopes: ~w(read write party),
                 resource_owner_schema: MyApp.User,
                 repo: MyApp.Repo
               }

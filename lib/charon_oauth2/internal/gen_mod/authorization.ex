@@ -39,7 +39,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
       @grant_schema unquote(grant_schema)
       @client_schema unquote(client_schema)
       @res_owner_schema @mod_config.resource_owner_schema
-      @app_scopes @mod_config.scopes |> Map.keys() |> :ordsets.from_list()
+      @app_scopes @mod_config.scopes |> :ordsets.from_list()
 
       @type t :: %__MODULE__{}
       @typedoc "Bindings / preloads that can be used with `resolve_binding/2` and `preload/2`"
@@ -51,7 +51,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
               | :grants
               | :grants_resource_owner
 
-      schema @mod_config.authorization_table do
+      schema @mod_config.authorizations_table do
         field(:scope, SeparatedStringOrdset, pattern: [",", " "])
 
         belongs_to(:resource_owner, @res_owner_schema,
@@ -73,7 +73,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
         struct_or_cs
         |> cast(params, [:scope])
         |> validate_required([:scope])
-        |> validate_sub_ordset(
+        |> validate_ordset_contains(
           :scope,
           @app_scopes,
           "must be subset of #{Enum.join(@app_scopes, ", ")}"

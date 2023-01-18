@@ -1,6 +1,6 @@
 defmodule CharonOauth2.Types.Hmac do
   @moduledoc """
-  Ecto type to only store a HMAC of the input data.
+  Ecto type to only store an HMAC of the input data.
   This means the original data cannot be retrieved,
   but a record can be found by an exact equality match.
 
@@ -27,6 +27,7 @@ defmodule CharonOauth2.Types.Hmac do
   def cast(_, _), do: :error
 
   @impl true
+  def load(nil, _, _), do: {:ok, nil}
   def load(value, _, _), do: {:ok, value}
 
   @impl true

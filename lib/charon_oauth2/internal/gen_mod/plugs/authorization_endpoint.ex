@@ -11,13 +11,31 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
           ] do
       @moduledoc """
       The Oauth2 [authorization endpoint](https://www.rfc-editor.org/rfc/rfc6749#section-3.1).
-      This version is meant to be used by a first-party web client in which a user
-      can grant or deny access.
-      So it does not, by itself, behave as an oauth2 authorization endpoint
-      (for example, it only supports POST requests).
 
-      User must be logged-in using Charon
-      (at least `Charon.TokenPlugs.verify_token_signature/2` must be called on the conn.)
+      This endpoint is meant to be combined with a first-party web client in which a user can grant or deny access.
+      So it does not, by itself, behave as an oauth2 authorization endpoint (for example, it only supports POST requests).
+      The endpoint returns a JSON response with 200 OK and a `redirect_to` parameter,
+      that the web client should then, you know, redirect to.
+      The redirect may also contain an error result.
+      However, there are some errors that must not result in redirection,
+      for example errors in validating the redirect URI itself.
+      Such errors result in a 400 response with an error description,
+      that the companion web client may show to the user at its discretion.
+
+      User must be logged-in using Charon (at least `Charon.TokenPlugs.verify_token_signature/2` must be called on the conn.)
+
+      ## Behaviour
+
+      The endpoint essentially upserts a user's authorization for a client (if the request is valid, of course).
+      A subtlety to note is that the endpoint does not ever reduce the authorized scopes, it only expands them.
+      The reason for this is that an Oauth2 client may request multiple access tokens,
+      some of which have a smaller scope than others.
+      If we reduced the scopes to the request scope, the user would need to re-grant permission every time.
+
+      In other words, this endpoint is not intended to manage a user's authorizations.
+      It is probably a good idea for a user to be able to fully revoke or reduce the scope of an authorization.
+      For such purposes, applications can simply add authorization CRUD functionality to their API,
+      using `MyApp.CharonOauth2.Authorizations` functions.
 
       ## Usage
 
@@ -44,7 +62,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
       def init(opts) do
         config = Keyword.fetch!(opts, :config)
         mod_conf = CharonOauth2.Internal.get_module_config(config)
-        scopes = mod_conf.scopes |> Map.keys() |> :ordsets.from_list()
+        scopes = mod_conf.scopes |> :ordsets.from_list()
         %{config: config, mod_conf: mod_conf, scopes: scopes}
       end
 
@@ -132,10 +150,18 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
 
       defp upsert_authorization(user_id, req_params = %{client_id: client_id}) do
         ids = %{client_id: client_id, resource_owner_id: user_id}
-        # scope is not updated if the parameter is not present
         params = req_params |> Map.take([:scope]) |> Map.merge(ids)
         getter = fn -> @auth_context.get_by(ids) end
-        update = fn auth -> @auth_context.update(auth, params) end
+
+        update = fn auth ->
+          # authorization's scope is only updated if the req param is present
+          # AND new scopes have been authorized
+          req_scopes = Map.get(params, :scope, [])
+          missing_scopes = :ordsets.subtract(req_scopes, auth.scope)
+          params = if(missing_scopes == [], do: Map.drop(params, [:scope]), else: params)
+          @auth_context.update(auth, params)
+        end
+
         insert = fn -> @auth_context.insert(params) end
         Internal.upsert(getter, update, insert, @repo)
       end

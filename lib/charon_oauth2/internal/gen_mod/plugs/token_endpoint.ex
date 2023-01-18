@@ -10,8 +10,11 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           ] do
       @moduledoc """
       The Oauth2 [token endpoint](https://www.rfc-editor.org/rfc/rfc6749#section-3.2).
-      It must support request bodies with content type `application/x-www-form-urlencoded`,
-      be sure to pipe the request through an appropriately set-up Plug.Parsers.
+
+      There is no need to pass the conn through `Plug.Parsers`, because it does so by itself.
+      The endpoint only accepts content type `application/x-www-form-urlencoded` with utf-8 params.
+      The exceptions raised by Plug.Parsers simply bubble up,
+      your application must return appropriate responses for them (Phoenix applications should do so by default).
 
       ## Usage
 
@@ -19,10 +22,38 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
 
           # this endpoint must be public, without any additional authentication requirements
           forward "/oauth2/token", TokenEndpoint, config: @config
+
+      ## Client authentication
+
+      Confidential clients must authenticate using their client secret (and public clients may do so too
+      although there would be little point in it if they can't keep their secret, you know, secret).
+
+      HTTP Basic authentication takes precedence over req body credentials.
+      Although [the spec](https://datatracker.ietf.org/doc/html/rfc6749#section-2.3)
+      says clients must not use more than one auth method,
+      it doesn't say auth servers should reject such requests,
+      so we simply decided that HTTP Basic takes priority,
+      because the same spec says that HTTP Basic, at least, *must* be supported
+      for clients that identify using a client password.
+
+      IF HTTP Basic auth is used, an authentication failure results in a 401 response with
+      header "www-authenticate" set to "Basic", instead of a "normal" 400-with-JSON error response.
+
+      ## Authorization code with Proof Key for Code Exchange (PKCE) enforced
+
+      The Oauth 2.1 [draft spec](https://www.ietf.org/archive/id/draft-ietf-oauth-v2-1-07.html) recommends
+      enforcing PKCE for the authorization_code grant under all circumstances. That is what we do.
+
+      ## Sessions
+
+      Tokens handed out by this endpoint are backed by a server-side session (that is only loaded on refresh, by default).
+      The session type is `:oauth2`, separating these sessions from other sessions that the user may have in `Charon`.
+      The purpose of this separation is to be able to call delete-all and not drop oauth2-client connections,
+      or the other way around.
       """
       @behaviour Plug
       use Charon.Internal.Constants
-      alias Plug.Conn
+      alias Plug.{Conn, Parsers}
       alias Charon.{SessionPlugs, Utils}
       alias CharonOauth2.Internal
       alias Internal.TokenValidator, as: Validate
@@ -34,6 +65,13 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
       @auth_context auth_context
       @client_context client_context
 
+      @parser_opts Parsers.init(
+                     parsers: [:urlencoded],
+                     pass: [],
+                     validate_utf8: true,
+                     length: 1_000_000
+                   )
+
       @impl true
       def init(opts) do
         config = Keyword.fetch!(opts, :config)
@@ -43,12 +81,13 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
       end
 
       @impl true
-      def call(conn = %{method: "POST", path_info: [], body_params: params}, opts) do
-        params = Map.put(params, "auth_header", get_req_header(conn, "authorization"))
+      def call(conn = %{method: "POST", path_info: []}, opts) do
+        conn = Parsers.call(conn, @parser_opts)
+        params = conn.body_params |> Map.put("auth_header", get_req_header(conn, "authorization"))
 
         with cs = %{valid?: true} <-
                params
-               |> Validate.cast_non_grant_type_params()
+               |> Validate.cast_params()
                |> Validate.grant_type()
                |> Validate.authenticate_client(@client_context) do
           process_grant(cs, conn, opts)
@@ -132,6 +171,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         end
       end
 
+      # https://datatracker.ietf.org/doc/html/rfc6749#section-6
       defp process_grant(
              cs = %{changes: %{client: client, grant_type: grant_type = "refresh_token"}},
              conn,
@@ -140,13 +180,20 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         with %{valid?: true, changes: %{refresh_token: token}} <- Validate.refresh_token_flow(cs),
              conn = Utils.set_token(conn, token),
              {:ok, conn, %{"sub" => uid, "cid" => cid}} <- verify_refresh_token(conn, opts),
+             # the token must belong to the authenticated client
              {_, true} <- {:client_id_matches?, cid == client.id},
+             # the user must still have authorized the client
              authorization = %{} <- @auth_context.get_by(resource_owner_id: uid, client_id: cid) do
           conn
           |> Utils.set_token_signature_transport(:bearer)
           |> upsert_session(authorization, opts)
           |> send_token_response(authorization, now(), opts)
-        else
+        end
+        # this ugly crap instead of with-else is needed to keep dialyzer happy :|
+        |> case do
+          conn = %Plug.Conn{} ->
+            conn
+
           {:refresh_token_error, err} ->
             json_error(conn, 400, "invalid_grant", "refresh_token: #{err}", opts)
 
