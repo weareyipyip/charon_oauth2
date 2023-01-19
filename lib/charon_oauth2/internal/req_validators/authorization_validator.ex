@@ -77,8 +77,8 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
   other stuff can be wrong with the request depending on the client, the application scopes etc.
   Here we do those checks.
   """
-  @spec other_checks(Changeset.t(), map(), struct(), [String.t()]) :: Changeset.t()
-  def other_checks(cs, params, client, scopes) do
+  @spec other_checks(Changeset.t(), map(), struct(), [String.t()], map()) :: Changeset.t()
+  def other_checks(cs, params, client, scopes, opts) do
     cs
     |> cast(params, [:permission_granted])
     |> validate_required([:permission_granted])
@@ -88,7 +88,7 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
     |> validate_client_response_type(client)
     |> then(fn
       cs = %{valid?: true, changes: %{response_type: resp_type}} ->
-        type_dependent_validations(cs, resp_type)
+        type_dependent_validations(cs, resp_type, client, opts)
 
       cs ->
         cs
@@ -100,12 +100,19 @@ defmodule CharonOauth2.Internal.AuthorizationValidator do
   # Private #
   ###########
 
-  defp type_dependent_validations(cs, "code") do
-    cs
-    # PKCE (optional but required for public clients in original oauth2 spec)
-    # mandatory in updated "oauth2.1" spec https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-07#name-differences-from-oauth-20
-    |> validate_required(:code_challenge, message: "can't be blank (PKCE is required)")
-    |> validate_required(:code_challenge_method)
+  defp type_dependent_validations(cs, "code", _client = %{client_type: client_type}, opts) do
+    # PKCE (optional in https://www.rfc-editor.org/rfc/rfc7636.html)
+    # mandatory for public clients in updated "oauth2.1" spec https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-07#name-differences-from-oauth-20
+    # recommended for all clients in 2.1 spec
+    enforce_pkce = opts.mod_conf.enforce_pkce
+
+    if enforce_pkce == :all or (enforce_pkce == :public and client_type == "public") do
+      cs
+      |> validate_required(:code_challenge, message: "can't be blank (PKCE is required)")
+      |> validate_required(:code_challenge_method)
+    else
+      cs
+    end
     |> validate_inclusion(:code_challenge_method, @supported_challenge_methods,
       message: "is unsupported"
     )

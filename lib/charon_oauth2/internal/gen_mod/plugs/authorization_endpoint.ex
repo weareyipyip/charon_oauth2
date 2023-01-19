@@ -76,7 +76,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
              {_, cs = %{valid?: true}} <-
                Validate.missing_invalid_or_malformed(cs, params),
              cs = %{valid?: true, changes: %{response_type: response_type}} <-
-               Validate.other_checks(cs, params, client, scopes) do
+               Validate.other_checks(cs, params, client, scopes, opts) do
           do_authorize(response_type, conn, cs)
         else
           # on errors with the redirect_uri or the client_id, we don't redirect, as per the spec

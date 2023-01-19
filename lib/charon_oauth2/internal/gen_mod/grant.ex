@@ -83,7 +83,6 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
                {_, true} <- {:res_own, res_owner_id == authorization.resource_owner_id} do
             %{cs | data: %{data | authorization: authorization}}
             |> validate_redirect_uri(client)
-            |> maybe_require_pkce(type, client)
           else
             {:type, _} -> add_error(cs, :type, "not supported by client")
             {:res_own, _} -> add_error(cs, :authorization_id, "belongs to other resource owner")
@@ -195,13 +194,6 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
       ###########
       # Private #
       ###########
-
-      # require PKCE for authorization_code-type grants for public clients
-      defp maybe_require_pkce(changeset, "authorization_code", client = %{client_type: "public"}) do
-        validate_required(changeset, :code_challenge)
-      end
-
-      defp maybe_require_pkce(changeset, _grant_type, _client), do: changeset
 
       # param redirect_uri is only required when multiple uris are configured for the client
       defp validate_redirect_uri(cs, _client = %{redirect_uris: uris}) do

@@ -99,12 +99,6 @@ defmodule CharonOauth2.Internal.GenMod.Grants do
           iex> grant_params(redirect_uri: "https://boom") |> Grants.insert() |> errors_on()
           %{redirect_uri: ["does not match client"]}
 
-          # public clients require PKCE
-          iex> client = insert_test_client(client_type: "public")
-          iex> authorization = insert_test_authorization(client_id: client.id)
-          iex> grant_params(authorization_id: authorization.id) |> Grants.insert() |> errors_on()
-          %{code_challenge: ["can't be blank"]}
-
           # redirect_uri is required if client has multiple uris set
           iex> client = insert_test_client(redirect_uris: ~w(https://a https://b))
           iex> authorization = insert_test_authorization(client_id: client.id)

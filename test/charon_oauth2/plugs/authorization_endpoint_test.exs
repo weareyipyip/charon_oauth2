@@ -3,10 +3,13 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
   alias MyApp.CharonOauth2.{Authorizations, Grants, Plugs.AuthorizationEndpoint, Config}
   import MyApp.{Seeds, TestUtils}
   import Plug.Test
+  import Charon.TestHelpers
+
+  @config Config.get()
 
   setup do
     client = insert_test_client()
-    opts = AuthorizationEndpoint.init(config: Config.get())
+    opts = AuthorizationEndpoint.init(config: @config)
     user = insert_test_user()
     [client: client, opts: opts, user: user]
   end
@@ -476,7 +479,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
   end
 
   describe "authorization_code with PKCE flow" do
-    test "PKCE is required for ALL clients", seeds do
+    test "PKCE is required for ALL clients by default", seeds do
       assert %{
                "state" => "teststate",
                "error" => "invalid_request",
@@ -492,6 +495,79 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                })
                |> login(seeds)
                |> AuthorizationEndpoint.call(seeds.opts)
+               |> assert_dont_cache()
+               |> redir_response(seeds.client.redirect_uris |> List.first())
+    end
+
+    test "PKCE is required for public clients if :enforce_pkce = :public", seeds do
+      config = override_opt_mod_conf(@config, CharonOauth2, enforce_pkce: :public)
+      opts = AuthorizationEndpoint.init(config: config)
+
+      public_client = insert_test_client(client_type: "public")
+
+      assert %{
+               "state" => "teststate",
+               "error" => "invalid_request",
+               "error_description" =>
+                 "code_challenge: can't be blank (PKCE is required), code_challenge_method: can't be blank"
+             } ==
+               conn(:post, "/", %{
+                 client_id: public_client.id,
+                 response_type: "code",
+                 permission_granted: true,
+                 scope: "read",
+                 state: "teststate"
+               })
+               |> login(seeds)
+               |> AuthorizationEndpoint.call(seeds.opts)
+               |> assert_dont_cache()
+               |> redir_response(seeds.client.redirect_uris |> List.first())
+
+      # not required for confidential client
+      assert %{"code" => _} =
+               conn(:post, "/", %{
+                 client_id: seeds.client.id,
+                 response_type: "code",
+                 permission_granted: true,
+                 scope: "read",
+                 state: "teststate"
+               })
+               |> login(seeds)
+               |> AuthorizationEndpoint.call(opts)
+               |> assert_dont_cache()
+               |> redir_response(seeds.client.redirect_uris |> List.first())
+    end
+
+    test "PKCE is not required if :enforce_pkce = :no", seeds do
+      config = override_opt_mod_conf(@config, CharonOauth2, enforce_pkce: :no)
+      opts = AuthorizationEndpoint.init(config: config)
+
+      public_client = insert_test_client(client_type: "public")
+
+      assert %{"code" => _} =
+               conn(:post, "/", %{
+                 client_id: public_client.id,
+                 response_type: "code",
+                 permission_granted: true,
+                 scope: "read",
+                 state: "teststate"
+               })
+               |> login(seeds)
+               |> AuthorizationEndpoint.call(opts)
+               |> assert_dont_cache()
+               |> redir_response(seeds.client.redirect_uris |> List.first())
+
+      # not required for confidential client
+      assert %{"code" => _} =
+               conn(:post, "/", %{
+                 client_id: seeds.client.id,
+                 response_type: "code",
+                 permission_granted: true,
+                 scope: "read",
+                 state: "teststate"
+               })
+               |> login(seeds)
+               |> AuthorizationEndpoint.call(opts)
                |> assert_dont_cache()
                |> redir_response(seeds.client.redirect_uris |> List.first())
     end

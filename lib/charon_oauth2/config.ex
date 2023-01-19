@@ -13,6 +13,7 @@ defmodule CharonOauth2.Config do
             authorizations_table: "charon_oauth2_authorizations",
             clients_table: "charon_oauth2_clients",
             customize_session_upsert_args: &Function.identity/1,
+            enforce_pkce: :all,
             grants_table: "charon_oauth2_grants",
             grant_ttl: 10 * 60,
             resource_owner_id_column: :id,
@@ -30,6 +31,7 @@ defmodule CharonOauth2.Config do
    - `:authorizations_table` the name of the table in which to store authorizations.
    - `:clients_table` the name of the table in which to store clients.
    - `:customize_session_upsert_args` a function that you can use to customize the arguments that are passed by your `MyApp.TokenEndpoint` to `Charon.SessionPlugs.upsert_session/3`. Be careful, usually you might want to add to these arguments, but not override them.
+   - `:enforce_pkce` for `:public`, `:all` or `:no` clients
    - `:grant_ttl` time in seconds that a grant (mostly authorization code) takes to expire
    - `:grants_table` the name of the table in which to store grants
    - `:resource_owner_id_column` the column name, as an atom, of the resource owner's schema's primary key
@@ -45,6 +47,7 @@ defmodule CharonOauth2.Config do
     authorizations_table: "charon_oauth2_authorizations",
     clients_table: "charon_oauth2_clients",
     customize_session_upsert_args: &Function.identity/1,
+    enforce_pkce: :all,
     grants_table: "charon_oauth2_grants",
     # ten minutes
     grant_ttl: 10 * 60,
@@ -57,6 +60,7 @@ defmodule CharonOauth2.Config do
           authorizations_table: String.t(),
           clients_table: String.t(),
           customize_session_upsert_args: ([...] -> [...]),
+          enforce_pkce: :no | :public | :all,
           grant_ttl: pos_integer(),
           grants_table: String.t(),
           repo: module(),
