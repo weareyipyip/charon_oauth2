@@ -194,7 +194,9 @@ The page must do the following:
    - IF 200 OK and `redirect_to`, then redirect to the provided link. This redirect may also contain an error response.
    - IF 400 Bad Request and `errors`, show the user an error message and _don't redirect_ (this basically only happens if something is wrong with request parameters that would make it unsafe to redirect to the client, for example, the `redirect_uri` does not match the one configured for the client).
 
-##### TODO: Add a vue example
+#### React example
+
+A React example can be found [here](./example-auth-page.md).
 
 #### Add API endpoints needed for authorization page
 

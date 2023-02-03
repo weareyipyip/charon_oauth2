@@ -22,7 +22,7 @@ defmodule CharonOauth2.MixProject do
       name: "CharonOauth2",
       docs: [
         source_ref: "main",
-        extras: ["./README.md"],
+        extras: ["./README.md", "./example-auth-page.md"],
         main: "readme"
       ]
     ]
