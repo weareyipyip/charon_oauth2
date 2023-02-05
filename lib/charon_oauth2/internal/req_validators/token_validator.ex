@@ -1,6 +1,7 @@
 defmodule CharonOauth2.Internal.TokenValidator do
   @moduledoc false
   use Ecto.Schema
+  alias CharonOauth2.Types.SeparatedStringOrdset
   alias Ecto.Changeset
   import Changeset
   use Charon.Internal.Constants
@@ -19,6 +20,7 @@ defmodule CharonOauth2.Internal.TokenValidator do
     field :code_verifier, :string
     field :client, :any, virtual: true
     field :auth_header, :any, virtual: true
+    field :scope, SeparatedStringOrdset, pattern: [" ", ","]
   end
 
   @grant_types ~w(authorization_code refresh_token)
@@ -37,7 +39,8 @@ defmodule CharonOauth2.Internal.TokenValidator do
       :client_secret,
       :refresh_token,
       :code_verifier,
-      :auth_header
+      :auth_header,
+      :scope
     ])
     |> validate_auth_header()
   end
@@ -113,6 +116,7 @@ defmodule CharonOauth2.Internal.TokenValidator do
     |> validate_client_grant_type(cs.changes.client)
     |> validate_redirect_uri(grant)
     |> validate_pkce(grant)
+    |> validate_scope(authorization)
   end
 
   @doc """
@@ -121,10 +125,18 @@ defmodule CharonOauth2.Internal.TokenValidator do
 
   https://datatracker.ietf.org/doc/html/rfc6749#section-6
   """
-  @spec refresh_token_flow(Changeset.t()) :: Changeset.t()
-  def refresh_token_flow(cs) do
+  @spec refresh_token_flow_step_1(Changeset.t()) :: Changeset.t()
+  def refresh_token_flow_step_1(cs) do
     client = cs.changes.client
     cs |> validate_required([:refresh_token]) |> validate_client_grant_type(client)
+  end
+
+  @doc """
+  After grabbing the authorization, we verify that the request scope param is a subset of the authorized scopes.
+  """
+  @spec refresh_token_flow_step_2(Changeset.t(), struct()) :: Changeset.t()
+  def refresh_token_flow_step_2(cs, authorization) do
+    cs |> validate_scope(authorization)
   end
 
   ###########
@@ -229,5 +241,10 @@ defmodule CharonOauth2.Internal.TokenValidator do
   # in addition to being supported by the server in the first place
   defp validate_client_grant_type(cs, _client = %{grant_types: grant_types}) do
     validate_ordset_contains(cs, :grant_type, grant_types, "unsupported by client")
+  end
+
+  # validate that the requested scopes are a subset of the authorized scopes
+  defp validate_scope(cs, _authorization = %{scope: scopes}) do
+    validate_ordset_contains(cs, :scope, scopes, "user authorized #{Enum.join(scopes, ", ")}")
   end
 end

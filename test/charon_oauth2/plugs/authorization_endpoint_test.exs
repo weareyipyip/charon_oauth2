@@ -394,33 +394,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> assert_dont_cache()
                |> redir_response(seeds.client.redirect_uris |> List.first())
 
-      assert [%{scope: ~w(write)}] = Authorizations.all()
-    end
-
-    test "existing authorization's scope is NOT reduced to request scope", seeds do
-      client = insert_test_client(scope: ~w(read write))
-
-      insert_test_authorization(
-        client_id: client.id,
-        resource_owner_id: seeds.user.id,
-        scope: ~w(read write)
-      )
-
-      assert %{"code" => _, "state" => "teststate"} =
-               conn(:post, "/", %{
-                 client_id: client.id,
-                 response_type: "code",
-                 permission_granted: true,
-                 state: "teststate",
-                 scope: "write",
-                 code_challenge: "test",
-                 code_challenge_method: "S256"
-               })
-               |> login(seeds)
-               |> AuthorizationEndpoint.call(seeds.opts)
-               |> assert_dont_cache()
-               |> redir_response(seeds.client.redirect_uris |> List.first())
-
+      # write is added, read isn't removed
       assert [%{scope: ~w(read write)}] = Authorizations.all()
     end
 

@@ -10,7 +10,9 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
   @config MyApp.CharonOauth2.Config.get()
 
   setup do
-    client = insert_test_client(grant_types: ~w(authorization_code refresh_token))
+    client =
+      insert_test_client(grant_types: ~w(authorization_code refresh_token), scope: ~w(read write))
+
     user = insert_test_user()
     authorization = insert_test_authorization(client_id: client.id, resource_owner_id: user.id)
     grant = insert_test_grant(authorization_id: authorization.id, resource_owner_id: user.id)
@@ -571,6 +573,36 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
 
       assert {:ok, %{"scope" => "test"}} = Charon.TokenFactory.verify(a_token, @config)
     end
+
+    test "unrecognized request scope is rejected", seeds do
+      assert %{"error" => "invalid_scope", "error_description" => "scope: user authorized read"} =
+               conn(:post, "/", %{
+                 grant_type: "authorization_code",
+                 code: seeds.grant.code,
+                 client_id: seeds.client.id,
+                 redirect_uri: seeds.grant.redirect_uri,
+                 client_secret: seeds.client.secret,
+                 scope: "boom"
+               })
+               |> TokenEndpoint.call(seeds.opts)
+               |> assert_dont_cache()
+               |> json_response(400)
+    end
+
+    test "token with reduced scope is granted on request", seeds do
+      assert %{"scope" => "read"} =
+               conn(:post, "/", %{
+                 grant_type: "authorization_code",
+                 code: seeds.grant.code,
+                 client_id: seeds.client.id,
+                 redirect_uri: seeds.grant.redirect_uri,
+                 client_secret: seeds.client.secret,
+                 scope: "read"
+               })
+               |> TokenEndpoint.call(seeds.opts)
+               |> assert_dont_cache()
+               |> json_response(200)
+    end
   end
 
   describe "refresh_token flow" do
@@ -704,8 +736,39 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> json_response(200)
     end
 
-    test "authorization's current scope is granted, regardless of token or request scope",
-         seeds do
+    test "unrecognized request scope is rejected", seeds do
+      verify_token = fn conn, _config ->
+        conn
+        |> set_token_payload(%{"sub" => seeds.user.id, "cid" => seeds.client.id})
+        |> set_session(%Session{
+          created_at: 1,
+          expires_at: 1,
+          id: 1,
+          refresh_expires_at: 1,
+          refresh_tokens_at: 1,
+          refresh_tokens: [],
+          refreshed_at: 1,
+          user_id: seeds.user.id
+        })
+      end
+
+      config = override_opt_mod_conf(@config, CharonOauth2, verify_refresh_token: verify_token)
+      opts = TokenEndpoint.init(config: config)
+
+      assert %{"error" => "invalid_scope", "error_description" => "scope: user authorized read"} =
+               conn(:post, "/", %{
+                 grant_type: "refresh_token",
+                 client_id: seeds.client.id,
+                 client_secret: seeds.client.secret,
+                 refresh_token: "test",
+                 scope: "boom"
+               })
+               |> TokenEndpoint.call(opts)
+               |> assert_dont_cache()
+               |> json_response(400)
+    end
+
+    test "token with reduced scope is granted on request", seeds do
       verify_token = fn conn, _config ->
         conn
         |> set_token_payload(%{
@@ -734,7 +797,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                  client_id: seeds.client.id,
                  client_secret: seeds.client.secret,
                  refresh_token: "test",
-                 scope: "boom"
+                 scope: "read"
                })
                |> TokenEndpoint.call(opts)
                |> assert_dont_cache()

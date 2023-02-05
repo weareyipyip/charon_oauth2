@@ -132,15 +132,16 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
              now = now(),
              grant_exp = DateTime.to_unix(grant.expires_at, :second),
              {_, false} <- {:expired?, grant_exp < now},
-             %{valid?: true} <- Validate.authorization_code_flow_step_2(cs, grant) do
+             cs = %{valid?: true} <- Validate.authorization_code_flow_step_2(cs, grant) do
           # prevent authorization code reuse
           {:ok, _} = @grant_context.delete(id: grant.id)
+          scopes = Map.get(cs.changes, :scope, authorization.scope)
 
           conn
           |> Utils.set_token_signature_transport(:bearer)
           |> Utils.set_user_id(grant.resource_owner_id)
-          |> upsert_session(authorization, opts)
-          |> send_token_response(authorization, now, opts)
+          |> upsert_session(authorization, scopes, opts)
+          |> send_token_response(scopes, now, opts)
         else
           # https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
           # grant not found
@@ -165,6 +166,9 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
               %{redirect_uri: ["does not match grant"]} ->
                 json_error(conn, 400, "invalid_grant", descr, opts)
 
+              %{scope: ["user authorized " <> _]} ->
+                json_error(conn, 400, "invalid_scope", descr, opts)
+
               other ->
                 json_error(conn, 400, "invalid_request", descr, opts)
             end
@@ -177,17 +181,21 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
              conn,
              opts
            ) do
-        with %{valid?: true, changes: %{refresh_token: token}} <- Validate.refresh_token_flow(cs),
+        with cs = %{valid?: true, changes: %{refresh_token: token}} <-
+               Validate.refresh_token_flow_step_1(cs),
              conn = Utils.set_token(conn, token),
              {:ok, conn, %{"sub" => uid, "cid" => cid}} <- verify_refresh_token(conn, opts),
              # the token must belong to the authenticated client
              {_, true} <- {:client_id_matches?, cid == client.id},
              # the user must still have authorized the client
-             authorization = %{} <- @auth_context.get_by(resource_owner_id: uid, client_id: cid) do
+             authorization = %{} <- @auth_context.get_by(resource_owner_id: uid, client_id: cid),
+             cs = %{valid?: true} <- Validate.refresh_token_flow_step_2(cs, authorization) do
+          scopes = Map.get(cs.changes, :scope, authorization.scope)
+
           conn
           |> Utils.set_token_signature_transport(:bearer)
-          |> upsert_session(authorization, opts)
-          |> send_token_response(authorization, now(), opts)
+          |> upsert_session(authorization, scopes, opts)
+          |> send_token_response(scopes, now(), opts)
         end
         # this ugly crap instead of with-else is needed to keep dialyzer happy :|
         |> case do
@@ -213,6 +221,9 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
               %{grant_type: ["unsupported by client"]} ->
                 json_error(conn, 400, "unauthorized_client", descr, opts)
 
+              %{scope: ["user authorized " <> _]} ->
+                json_error(conn, 400, "invalid_scope", descr, opts)
+
               other ->
                 json_error(conn, 400, "invalid_request", descr, opts)
             end
@@ -228,15 +239,15 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         end
       end
 
-      defp upsert_session(conn, authorization, %{config: config, mod_conf: mod_conf}) do
-        %{scope: scope, client_id: cid} = authorization
+      defp upsert_session(conn, authorization, scopes, %{config: config, mod_conf: mod_conf}) do
+        %{client_id: cid} = authorization
 
         [
           conn,
           config,
           [
             session_type: :oauth2,
-            access_claim_overrides: %{"cid" => cid, "scope" => scope},
+            access_claim_overrides: %{"cid" => cid, "scope" => scopes},
             refresh_claim_overrides: %{"cid" => cid}
           ]
         ]
@@ -244,7 +255,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         |> then(&apply(SessionPlugs, :upsert_session, &1))
       end
 
-      defp send_token_response(conn, authorization, now, opts) do
+      defp send_token_response(conn, scopes, now, opts) do
         tokens = conn |> Utils.get_tokens()
 
         resp_body = %{
@@ -252,7 +263,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           expires_in: tokens.access_token_exp - now,
           refresh_expires_in: tokens.refresh_token_exp - now,
           refresh_token: tokens.refresh_token,
-          scope: authorization.scope |> Enum.join(" "),
+          scope: scopes |> Enum.join(" "),
           token_type: "bearer"
         }
 

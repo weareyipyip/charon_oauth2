@@ -153,12 +153,9 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
         params = req_params |> Map.take([:scope]) |> Map.merge(ids)
         getter = fn -> @auth_context.get_by(ids) end
 
-        update = fn auth ->
-          # authorization's scope is only updated if the req param is present
-          # AND new scopes have been authorized
-          req_scopes = Map.get(params, :scope, [])
-          missing_scopes = :ordsets.subtract(req_scopes, auth.scope)
-          params = if(missing_scopes == [], do: Map.drop(params, [:scope]), else: params)
+        update = fn auth = %{scope: current_scopes} ->
+          # the authorized scopes are only ever expanded, never reduced, by an authorization request
+          params = Map.update(params, :scope, current_scopes, &:ordsets.union(&1, current_scopes))
           @auth_context.update(auth, params)
         end
 
