@@ -1,9 +1,8 @@
 # CharonOauth2
 
-CharonOauth2 is a child package of [Charon](https://github.com/weareyipyip/charon) that adds Oauth2 authorization server capability to a Charon-powered application.
-If you simply add CharonOauth2 to an existing application, you will probably end up with an API that is both the Oauth2 authorization server and resource server. That is perfectly fine, just be careful designing your scopes.
+CharonOauth2 is a child package of [Charon](https://github.com/weareyipyip/charon) that adds Oauth2 authorization server capability to a Charon-secured application. Charon is an auth framework for Elixir aimed primarily at securing APIs. If you simply add CharonOauth2 to an existing application, you will probably end up with an API that is both the Oauth2 authorization server and resource server. That is perfectly fine, just be careful designing and enforcing your scopes.
 
-Charon is an auth framework for Elixir aimed at APIs. As such, CharonOauth2 does not include an "authorize app X to use your Y account" page. Such a page is necessary for Oauth2, and adding it is left to the client application using whatever stack it chooses. CharonOauth does include an endpoint plug that does almost all of the heavy lifting of such a page, so that CharonOauth2 can be easily used without having to dive into the Oauth2 spec. This makes CharonOauth2 a little less of a batteries-included solution, but since you probably have a web app already, or a stack preference, or obnoxious developers or whatever, this shouldn't be too much of an issue in practice.
+Because Charon focuses on securing APIs, CharonOauth2 does not include an "authorize app X to use your Y account" page. Such a page is necessary for Oauth2, and adding it is left to the client application using whatever stack it chooses. CharonOauth does include an endpoint plug that does almost all of the heavy lifting of such a page, so that CharonOauth2 can be easily used without having to dive into the Oauth2 spec. This makes CharonOauth2 a little less of a batteries-included solution, but since you probably have a web app already, or a stack preference, or obnoxious developers or whatever, this shouldn't be too much of an issue in practice.
 
 CharonOauth2 implements recommendations from the [Oauth 2.1 draft spec](https://www.ietf.org/archive/id/draft-ietf-oauth-v2-1-07.html), such as enforcing PKCE with the authorization code grant for all clients.
 
@@ -143,7 +142,7 @@ end
 
 ### Add Oauth2 routes
 
-Oauth2 requires to important endpoints, the authorization endpoint and the token endpoint.
+Oauth2 requires two important endpoints, the authorization endpoint and the token endpoint.
 You can add both by forwarding to the two "endpoint plugs":
 
 ```elixir
@@ -164,7 +163,7 @@ defmodule MyAppWeb.Router do
   end
 
   scope "/api" do
-    # token endpoint does its own parsing and requires no authentication
+    # token endpoint does its own request body parsing and requires no authentication
     forward "/oauth2/token", TokenEndpoint, config: @my_charon_config
   end
 end
@@ -172,7 +171,7 @@ end
 
 ### Add an authorization page
 
-The authorization page receives the authorization request from third-party apps (oauth2 clients). Its purpose is to allow the user to grant or deny permission to access or use (parts of) the user's account. This access is limited by scopes.
+The authorization page receives the authorization request from third-party apps (Oauth2 clients). Its purpose is to allow the user to grant or deny permission to access or use (parts of) the user's account. This access is limited by scopes.
 
 `MyApp.CharonOauth2.AuthorizationEndpoint` verifies everything that needs verifying, so your implementation does not necessarily have to concern itself with validating query params. However, to provide a nice UX, it will have to make sure that:
 
@@ -186,7 +185,7 @@ The page must do the following:
 1. Fetch all defined scopes with their descriptions from the API.
 1. Determine which scopes are requested:
    - IF the `scope` query parameter is set, split it on whitespace " ".
-   - OR the fetched client's `scope` param.
+   - OR the fetched client's configured `scope`.
 1. Compare the requested scopes to the already-authorized scopes (if any).
 1. IF there are yet-to-be-authorized scopes, show them to the user and ask for permission.
 1. Call the authorization endpoint with all query params in the request body plus `"permission_granted": <boolean>` (this should be `true` if the user has already granted permission for all requested scopes).
@@ -219,7 +218,7 @@ For reasons explained below, this is something that cannot be abstracted away in
 #### What are scopes?
 
 Scopes are not the easiest concept to grasp in the first place.
-They are best thought-of as permissions for applications, as opposed to permissions for users.
+They are best thought of as permissions for applications, as opposed to permissions for users.
 For an operation to be authorized, both the application and the user must be authorized to perform it.
 
 For example, let's imagine your app can open a building's door.
@@ -233,9 +232,13 @@ _So in an Oauth2-enabled app, user permissions (roles etc) can't replace scopes,
 It is not always straightforward which scopes to define for your app,
 nor is it always simple which scopes should be needed for which operations.
 Does `door:open` imply `door:read`, in other words, are scopes hierarchical?
-It's probably best if they are not, not in the last place to preserve your own sanity,
-and since your open-door endpoint may return the door it
-has just opened in its response body, the endpoint should then require both scopes.
+If your open-door endpoint returns 204 No Content, maybe requiring `door:read` is not a good fit, after all, what data are you reading?
+On the other hand, if the endpoint returns the configuration data of the opened door,
+you are effectively reading the door's configuration by opening it, and
+requiring `door:read` too seems logical.
+So `door:open` does not necessarily imply `door:read` and it really depends on the application.
+It's probably best if scopes are not hierarchical and you simply require multiple scopes for the same operation where appropriate,
+not in the last place to preserve your own sanity.
 
 Another problem arises if your API returns other users' data.
 For example, if your application provides a `GET /my/building/residents` endpoint,
@@ -255,7 +258,7 @@ So design your API and scopes well.
 
 You should probably never allow third-party applications to do the following things, to prevent privilege escalation:
 
-- Read, create or update oauth2 grants, authorizations or clients.
+- Read, create or update Oauth2 grants, authorizations or clients.
 - Update a user's login credentials like passwords or MFA methods.
 - Read, create or update a user's push tokens.
 - Read, create or update a user's (non-Oauth2) sessions.
@@ -264,12 +267,7 @@ You should probably never allow third-party applications to do the following thi
 - Refresh tokens using an existing Charon session controller.
 
 It is especially important to be aware of this if your use of CharonOauth2 creates a combined authorization- and resource server.
-
-You can simply use an existing session controller (for example, the one you created for [Charon](https://github.com/weareyipyip/charon))
-and grant all scopes to tokens handed out by it. Or add a "special" scope that only first-party clients that authenticate in this way can use.
-
-Alternatively, you can go full oauth2, don't add or throw away your Charon session controller, and add a special oauth2 client app that
-has access to scopes that other clients don't, and use that for your own applications.
+You can (and should) use scopes to enforce these restrictions.
 
 #### Enforcing scopes
 
@@ -286,7 +284,8 @@ defmodule MyAppWeb.Router do
   ...
 
   pipeline :restrict_authorization_access do
-    # conveniently, the scope claim is an ordset (see :ordsets)
+    # the scope claim is an ordset (see :ordsets)
+    # this enforces that *both* scopes are present in the token claim
     plug :verify_token_ordset_claim_contains, {"scope", :ordsets.from_list(~w(authorization:write grant:write))}
     plug :verify_no_auth_error, &MyAppWeb.charon_error_handler/2
   end
@@ -306,6 +305,20 @@ defmodule MyAppWeb.Router do
   end
 end
 ```
+
+You can enforce scopes to separate first-party and third-party clients.
+
+To make sure that first-party clients have scopes that third-party clients don't have,
+you can simply use an existing session controller
+(for example, the one you created for [Charon](https://github.com/weareyipyip/charon))
+and grant all scopes to tokens handed out by it.
+This is the easiest and recommended way, because all of the nice things like session management
+will stay straightforward.
+
+Alternatively, you can go "full Oauth2", adding your own first-party client as an Oauth2 client that
+has access to scopes that other clients don't, and use that for your own applications.
+In that case you can throw away your "normal" Charon session controller.
+Also, you probably want to "pre-authorize" each user for your own client.
 
 ### Managing authorizations and clients
 
