@@ -42,7 +42,7 @@ defmodule CharonOauth2 do
     |> verify_token_claim_equals({"type", "refresh"})
     |> verify_token_claim_equals({"styp", "oauth2"})
     |> load_session(charon_config)
-    |> verify_refresh_token_fresh(10)
+    |> verify_token_fresh(10)
   end
 
   defmacro __using__(config) do

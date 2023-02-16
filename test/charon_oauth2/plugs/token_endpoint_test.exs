@@ -714,8 +714,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
           expires_at: 1,
           id: 1,
           refresh_expires_at: 1,
-          refresh_tokens_at: 1,
-          refresh_tokens: [],
+          refresh_token_id: "b",
           refreshed_at: 1,
           user_id: seeds.user.id
         })
@@ -745,8 +744,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
           expires_at: 1,
           id: 1,
           refresh_expires_at: 1,
-          refresh_tokens_at: 1,
-          refresh_tokens: [],
+          refresh_token_id: "b",
           refreshed_at: 1,
           user_id: seeds.user.id
         })
@@ -781,8 +779,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
           expires_at: 1,
           id: 1,
           refresh_expires_at: 1,
-          refresh_tokens_at: 1,
-          refresh_tokens: [],
+          refresh_token_id: "b",
           refreshed_at: 1,
           user_id: seeds.user.id
         })
