@@ -22,6 +22,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       alias CharonOauth2.Internal
       import CharonOauth2.Internal
       alias Charon.Internal, as: CharonInternal
+      alias Charon.Utils.Crypto
 
       @type t :: %__MODULE__{}
       @typedoc "Bindings / preloads that can be used with `resolve_binding/2` and `preload/2`"
@@ -42,7 +43,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       @client_types ~w(confidential public)
       @grant_types ~w(authorization_code refresh_token) |> :ordsets.from_list()
       @secret_bytesize 48
-      @autogen_secret {CharonInternal, :random_url_encoded, [@secret_bytesize]}
+      @autogen_secret {Crypto, :random_url_encoded, [@secret_bytesize]}
 
       @primary_key {:id, Ecto.UUID, autogenerate: true}
       schema @mod_config.clients_table do
@@ -125,7 +126,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
           end
         end)
         # always randomly (re)generate the secret
-        |> update_change(:secret, fn _ -> CharonInternal.random_url_encoded(@secret_bytesize) end)
+        |> update_change(:secret, fn _ -> Crypto.random_url_encoded(@secret_bytesize) end)
         |> validate_length(:description, max: 250)
       end
 

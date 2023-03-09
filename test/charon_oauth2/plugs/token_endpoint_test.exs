@@ -709,15 +709,19 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       verify_token = fn conn, _config ->
         conn
         |> set_token_payload(%{"sub" => seeds.user.id, "cid" => seeds.client.id})
-        |> set_session(%Session{
-          created_at: 1,
-          expires_at: 1,
-          id: 1,
-          refresh_expires_at: 1,
-          refresh_token_id: "b",
-          refreshed_at: 1,
-          user_id: seeds.user.id
-        })
+        |> set_session(
+          %{
+            created_at: 1,
+            expires_at: 1,
+            id: 1,
+            refresh_expires_at: 1,
+            refresh_token_id: "b",
+            refreshed_at: 1,
+            user_id: seeds.user.id,
+            tokens_fresh_from: 0
+          }
+          |> Session.upgrade_version(@config)
+        )
       end
 
       config = override_opt_mod_conf(@config, CharonOauth2, verify_refresh_token: verify_token)
@@ -739,15 +743,18 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       verify_token = fn conn, _config ->
         conn
         |> set_token_payload(%{"sub" => seeds.user.id, "cid" => seeds.client.id})
-        |> set_session(%Session{
-          created_at: 1,
-          expires_at: 1,
-          id: 1,
-          refresh_expires_at: 1,
-          refresh_token_id: "b",
-          refreshed_at: 1,
-          user_id: seeds.user.id
-        })
+        |> set_session(
+          %{
+            created_at: 1,
+            expires_at: 1,
+            id: 1,
+            refresh_expires_at: 1,
+            refresh_token_id: "b",
+            refreshed_at: 1,
+            user_id: seeds.user.id
+          }
+          |> Session.upgrade_version(@config)
+        )
       end
 
       config = override_opt_mod_conf(@config, CharonOauth2, verify_refresh_token: verify_token)
@@ -774,15 +781,18 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
           "cid" => seeds.client.id,
           "scope" => ["boom"]
         })
-        |> set_session(%Session{
-          created_at: 1,
-          expires_at: 1,
-          id: 1,
-          refresh_expires_at: 1,
-          refresh_token_id: "b",
-          refreshed_at: 1,
-          user_id: seeds.user.id
-        })
+        |> set_session(
+          %{
+            created_at: 1,
+            expires_at: 1,
+            id: 1,
+            refresh_expires_at: 1,
+            refresh_token_id: "b",
+            refreshed_at: 1,
+            user_id: seeds.user.id
+          }
+          |> Session.upgrade_version(@config)
+        )
       end
 
       config = override_opt_mod_conf(@config, CharonOauth2, verify_refresh_token: verify_token)

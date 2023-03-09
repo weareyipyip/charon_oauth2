@@ -17,6 +17,7 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
       alias CharonOauth2.Types.{Hmac, Encrypted}
       alias CharonOauth2.Internal
       alias Charon.Internal, as: CharonInternal
+      alias Charon.Utils.Crypto
 
       @type t :: %__MODULE__{}
       @typedoc "Bindings / preloads that can be used with `resolve_binding/2` and `preload/2`"
@@ -32,7 +33,7 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
       @res_owner_schema @mod_config.resource_owner_schema
 
       @types ~w(authorization_code)
-      @autogen_code {CharonInternal, :random_url_encoded, [32]}
+      @autogen_code {Crypto, :random_url_encoded, [32]}
 
       schema @mod_config.grants_table do
         field(:code, Hmac, autogenerate: @autogen_code, redact: true, config: @config)

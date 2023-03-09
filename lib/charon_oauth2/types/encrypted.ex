@@ -5,7 +5,7 @@ defmodule CharonOauth2.Types.Encrypted do
   Requires a column of type `:binary`.
   """
   alias Charon.Utils.KeyGenerator
-  alias CharonOauth2.Utils.Crypto
+  alias Charon.Utils.Crypto
   alias Ecto.ParameterizedType
   use ParameterizedType
 
