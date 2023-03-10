@@ -7,7 +7,7 @@ defmodule CharonOauth2.Internal.TokenValidator do
   use Charon.Internal.Constants
   import Charon.Internal
   import CharonOauth2.Internal
-  import Plug.Crypto, only: [secure_compare: 2]
+  import Charon.Internal.Crypto
 
   @primary_key false
   embedded_schema do
@@ -174,7 +174,7 @@ defmodule CharonOauth2.Internal.TokenValidator do
   defp validate_client_secret(cs = %{valid?: true, changes: %{client: client}}) do
     if(client.client_type == "confidential", do: validate_required(cs, :client_secret), else: cs)
     |> validate_change(:client_secret, fn _, value ->
-      if secure_compare(value, client.secret) do
+      if constant_time_compare(value, client.secret) do
         []
       else
         [client_secret: "does not match expected value"]
@@ -229,7 +229,7 @@ defmodule CharonOauth2.Internal.TokenValidator do
     |> validate_change(:code_verifier, fn _, verifier ->
       exp_challenge = :crypto.hash(:sha256, verifier) |> url_encode()
 
-      if secure_compare(exp_challenge, challenge) do
+      if constant_time_compare(exp_challenge, challenge) do
         []
       else
         [code_verifier: "does not match expected value"]

@@ -22,7 +22,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       alias CharonOauth2.Internal
       import CharonOauth2.Internal
       alias Charon.Internal, as: CharonInternal
-      alias Charon.Utils.Crypto
+      alias CharonInternal.Crypto
 
       @type t :: %__MODULE__{}
       @typedoc "Bindings / preloads that can be used with `resolve_binding/2` and `preload/2`"
