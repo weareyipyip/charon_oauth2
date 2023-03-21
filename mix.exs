@@ -41,7 +41,7 @@ defmodule CharonOauth2.MixProject do
       {:ecto, "~> 3.5"},
       {:ecto_sql, "~> 3.0"},
       {:plug, "~> 1.11"},
-      {:charon, "~> 2.7"},
+      {:charon, "~> 2.7 or ~> 3.0"},
       {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false},
       {:postgrex, ">= 0.0.0", only: [:dev, :test]},
       {:jason, "~> 1.4", only: [:dev, :test]},
