@@ -18,7 +18,10 @@ defmodule CharonOauth2.Migration do
   @spec change(Charon.Config.t()) :: any()
   def change(config) do
     mod_config = CharonOauth2.Internal.get_module_config(config)
-    resource_owner_table = mod_config.resource_owner_schema.__schema__(:source)
+
+    resource_owner_table =
+      mod_config.resource_owner_table || mod_config.resource_owner_schema.__schema__(:source)
+
     resource_owner_id_column = mod_config.resource_owner_id_column
     resource_owner_id_type = mod_config.resource_owner_id_type
 
