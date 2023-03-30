@@ -36,6 +36,7 @@ defmodule CharonOauth2.Config do
    - `:grants_table` the name of the table in which to store grants
    - `:resource_owner_id_column` the column name, as an atom, of the resource owner's schema's primary key
    - `:resource_owner_id_type` the type, as an atom, of the resource owner's schema's primary key
+   - `:resource_owner_table` the name of the table in resource owners are stored. Taken from `:resource_owner_schema` unless set.
    - `:verify_refresh_token` a function that you can use to verify an Oauth2 refresh token for the refresh token grant.
 
   """
@@ -53,6 +54,7 @@ defmodule CharonOauth2.Config do
     grant_ttl: 10 * 60,
     resource_owner_id_column: :id,
     resource_owner_id_type: :bigserial,
+    resource_owner_table: nil,
     verify_refresh_token: &CharonOauth2.verify_refresh_token/2
   ]
 
@@ -67,6 +69,7 @@ defmodule CharonOauth2.Config do
           resource_owner_id_column: atom(),
           resource_owner_id_type: atom(),
           resource_owner_schema: module(),
+          resource_owner_table: nil | String.t(),
           scopes: [String.t()],
           verify_refresh_token: (Plug.Conn.t(), Charon.Config.t() -> Plug.Conn.t())
         }
