@@ -7,6 +7,7 @@ defmodule CharonOauth2.Internal.GenMod.Clients do
       Context to manage clients
       """
       alias CharonOauth2.Internal
+      alias Ecto.Changeset
       import Ecto.Query, only: [where: 3, limit: 2, offset: 2, order_by: 2]
       import Internal
 
