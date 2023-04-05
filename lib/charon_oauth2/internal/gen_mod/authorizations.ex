@@ -8,6 +8,7 @@ defmodule CharonOauth2.Internal.GenMod.Authorizations do
       """
       require Logger
       import Ecto.Query, only: [where: 3, limit: 2, offset: 2, order_by: 2]
+      alias Ecto.Changeset
       alias CharonOauth2.Internal
       import Internal
 

@@ -8,6 +8,7 @@ defmodule CharonOauth2.Internal.GenMod.Grants do
       """
       require Logger
       alias CharonOauth2.Internal
+      alias Ecto.Changeset
       import Ecto.Query, only: [from: 2, where: 3, limit: 2, offset: 2, order_by: 2]
       import Internal
 
