@@ -57,6 +57,7 @@ defmodule CharonOauth2 do
       @authorization_context __MODULE__.Authorizations
       @grant_schema __MODULE__.Grant
       @grant_context __MODULE__.Grants
+      @authorization_seeder __MODULE__.Seeders.Authorization
       @authorization_endpoint __MODULE__.Plugs.AuthorizationEndpoint
       @token_endpoint __MODULE__.Plugs.TokenEndpoint
       @schemas_and_contexts %{
@@ -65,7 +66,8 @@ defmodule CharonOauth2 do
         client: @client_schema,
         clients: @client_context,
         authorization: @authorization_schema,
-        authorizations: @authorization_context
+        authorizations: @authorization_context,
+        authorization_seeder: @authorization_seeder
       }
 
       @moduledoc """
@@ -80,7 +82,9 @@ defmodule CharonOauth2 do
        - `#{@grant_context}`
        - `#{@authorization_endpoint}`
        - `#{@token_endpoint}`
+       - `#{@authorization_seeder}`
       """
+      # TODO: add seeders to submodules
 
       ###########
       # Schemas #
@@ -116,6 +120,13 @@ defmodule CharonOauth2 do
       Module.create(@client_context, client_context, Macro.Env.location(__ENV__))
       Module.create(@grant_context, grant_context, Macro.Env.location(__ENV__))
       Module.create(@authorization_context, authorization_context, Macro.Env.location(__ENV__))
+
+      ###########
+      # Seeders #
+      ###########
+
+      authorization_seeder = CharonOauth2.Seeders.Authorization.generate(@schemas_and_contexts, @mod_config, @repo)
+      Module.create(@authorization_seeder, authorization_seeder, Macro.Env.location(__ENV__))
 
       #########
       # Plugs #
