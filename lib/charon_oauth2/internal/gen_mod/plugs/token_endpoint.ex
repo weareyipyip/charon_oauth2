@@ -2,12 +2,9 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
   @moduledoc false
 
   def generate(schemas_and_contexts, _repo) do
-    quote generated: true,
-          bind_quoted: [
-            grant_context: schemas_and_contexts.grants,
-            auth_context: schemas_and_contexts.authorizations,
-            client_context: schemas_and_contexts.clients
-          ] do
+    quote location: :keep,
+          generated: true,
+          bind_quoted: [schemas_and_contexts: schemas_and_contexts] do
       @moduledoc """
       The Oauth2 [token endpoint](https://www.rfc-editor.org/rfc/rfc6749#section-3.2).
 
@@ -61,9 +58,9 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
       import Charon.{Internal, TokenPlugs}
       import Internal.Plug
 
-      @grant_context grant_context
-      @auth_context auth_context
-      @client_context client_context
+      @grant_context schemas_and_contexts.grants
+      @auth_context schemas_and_contexts.authorizations
+      @client_context schemas_and_contexts.clients
 
       @parser_opts Parsers.init(
                      parsers: [:urlencoded],

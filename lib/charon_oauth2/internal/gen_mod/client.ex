@@ -1,8 +1,10 @@
 defmodule CharonOauth2.Internal.GenMod.Client do
   @moduledoc false
 
-  def generate(%{authorization: authorization_schema, grant: grant_schema}, config) do
-    quote generated: true do
+  def generate(schemas_and_contexts, config) do
+    quote generated: true,
+          location: :keep,
+          bind_quoted: [config: config, schemas_and_contexts: schemas_and_contexts] do
       @moduledoc """
       An Oauth2 (third-party) client application.
 
@@ -33,10 +35,9 @@ defmodule CharonOauth2.Internal.GenMod.Client do
               | :authorizations_grants
               | :authorizations_grants_resource_owner
 
-      @config unquote(config)
-      @mod_config Internal.get_module_config(@config)
-      @auth_schema unquote(authorization_schema)
-      @grant_schema unquote(grant_schema)
+      @mod_config Internal.get_module_config(config)
+      @auth_schema schemas_and_contexts.authorization
+      @grant_schema schemas_and_contexts.grant
       @res_owner_schema @mod_config.resource_owner_schema
       @app_scopes @mod_config.scopes |> :ordsets.from_list()
 
@@ -48,7 +49,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       @primary_key {:id, Ecto.UUID, autogenerate: true}
       schema @mod_config.clients_table do
         field(:name, :string)
-        field(:secret, Encrypted, redact: true, autogenerate: @autogen_secret, config: @config)
+        field(:secret, Encrypted, redact: true, autogenerate: @autogen_secret, config: config)
         field(:redirect_uris, SeparatedStringOrdset, pattern: ",")
         field(:scope, SeparatedStringOrdset, pattern: [",", " "])
         field(:grant_types, SeparatedStringOrdset, pattern: ",")

@@ -1,8 +1,10 @@
 defmodule CharonOauth2.Internal.GenMod.Authorizations do
   @moduledoc false
 
-  def generate(%{authorization: authorization_schema}, repo) do
-    quote do
+  def generate(schemas_and_contexts, repo) do
+    quote location: :keep,
+          generated: true,
+          bind_quoted: [schemas_and_contexts: schemas_and_contexts, repo: repo] do
       @moduledoc """
       Context to manage authorizations
       """
@@ -12,8 +14,8 @@ defmodule CharonOauth2.Internal.GenMod.Authorizations do
       alias CharonOauth2.Internal
       import Internal
 
-      @authorization_schema unquote(authorization_schema)
-      @repo unquote(repo)
+      @authorization_schema schemas_and_contexts.authorization
+      @repo repo
 
       @doc """
       Get a single authorization by one or more clauses, optionally with preloads.

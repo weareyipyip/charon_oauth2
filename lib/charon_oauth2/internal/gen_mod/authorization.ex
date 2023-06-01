@@ -2,12 +2,11 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
   @moduledoc false
 
   def gen_dummy(config) do
-    quote generated: true do
+    quote generated: true, location: :keep, bind_quoted: [config: config] do
       use Ecto.Schema
       alias CharonOauth2.Internal
 
-      @config unquote(config)
-      @mod_config Internal.get_module_config(@config)
+      @mod_config Internal.get_module_config(config)
 
       schema "fix warnings" do
         field :client_id, :integer
@@ -18,8 +17,10 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
     end
   end
 
-  def generate(%{grant: grant_schema, client: client_schema}, config) do
-    quote generated: true do
+  def generate(schemas_and_contexts, config) do
+    quote generated: true,
+          location: :keep,
+          bind_quoted: [config: config, schemas_and_contexts: schemas_and_contexts] do
       @moduledoc """
       An authorization represents the permission granted by a resource owner (usually a user)
       to an application to act on their behalf within certain limits (determined by scopes).
@@ -34,10 +35,9 @@ defmodule CharonOauth2.Internal.GenMod.Authorization do
       alias CharonOauth2.Internal
       import Internal
 
-      @config unquote(config)
-      @mod_config Internal.get_module_config(@config)
-      @grant_schema unquote(grant_schema)
-      @client_schema unquote(client_schema)
+      @mod_config Internal.get_module_config(config)
+      @grant_schema schemas_and_contexts.grant
+      @client_schema schemas_and_contexts.client
       @res_owner_schema @mod_config.resource_owner_schema
       @app_scopes @mod_config.scopes |> :ordsets.from_list()
 
