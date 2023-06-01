@@ -1,8 +1,10 @@
 defmodule CharonOauth2.Internal.GenMod.Clients do
   @moduledoc false
 
-  def generate(%{client: client_schema}, repo) do
-    quote do
+  def generate(schemas_and_contexts, repo) do
+    quote location: :keep,
+          generated: true,
+          bind_quoted: [repo: repo, schemas_and_contexts: schemas_and_contexts] do
       @moduledoc """
       Context to manage clients
       """
@@ -11,8 +13,8 @@ defmodule CharonOauth2.Internal.GenMod.Clients do
       import Ecto.Query, only: [where: 3, limit: 2, offset: 2, order_by: 2]
       import Internal
 
-      @client_schema unquote(client_schema)
-      @repo unquote(repo)
+      @client_schema schemas_and_contexts.client
+      @repo repo
 
       @doc """
       Get a single client by one or more clauses, optionally with preloads.
