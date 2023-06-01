@@ -46,85 +46,85 @@ defmodule CharonOauth2 do
   end
 
   defmacro __using__(config) do
-    quote location: :keep, generated: true do
-      @charon_config unquote(config)
-      @mod_config Internal.get_module_config(@charon_config)
-      @repo @mod_config.repo
-      @user_schema @mod_config.resource_owner_schema
-      @client_schema __MODULE__.Client
-      @client_context __MODULE__.Clients
-      @authorization_schema __MODULE__.Authorization
-      @authorization_context __MODULE__.Authorizations
-      @grant_schema __MODULE__.Grant
-      @grant_context __MODULE__.Grants
-      @authorization_endpoint __MODULE__.Plugs.AuthorizationEndpoint
-      @token_endpoint __MODULE__.Plugs.TokenEndpoint
-      @schemas_and_contexts %{
-        grant: @grant_schema,
-        grants: @grant_context,
-        client: @client_schema,
-        clients: @client_context,
-        authorization: @authorization_schema,
-        authorizations: @authorization_context
-      }
+    quote generated: true, bind_quoted: [charon_config: config] do
+      mod_config = Internal.get_module_config(charon_config)
+      repo = mod_config.repo
+      client_schema_name = __MODULE__.Client
+      client_context_name = __MODULE__.Clients
+      authorization_schema_name = __MODULE__.Authorization
+      authorization_context_name = __MODULE__.Authorizations
+      grant_schema_name = __MODULE__.Grant
+      grant_context_name = __MODULE__.Grants
+      authorization_endpoint_name = __MODULE__.Plugs.AuthorizationEndpoint
+      token_endpoint_name = __MODULE__.Plugs.TokenEndpoint
+
+      schemas_and_contexts =
+        %{
+          grant: grant_schema_name,
+          grants: grant_context_name,
+          client: client_schema_name,
+          clients: client_context_name,
+          authorization: authorization_schema_name,
+          authorizations: authorization_context_name
+        }
+        |> Macro.escape()
 
       @moduledoc """
       Entrypoint module for CharonOauth2.
 
       The following submodules are generated:
-      - `#{@authorization_schema}`
-      - `#{@authorization_context}`
-       - `#{@client_schema}`
-       - `#{@client_context}`
-       - `#{@grant_schema}`
-       - `#{@grant_context}`
-       - `#{@authorization_endpoint}`
-       - `#{@token_endpoint}`
+      - `#{authorization_schema_name}`
+      - `#{authorization_context_name}`
+       - `#{client_schema_name}`
+       - `#{client_context_name}`
+       - `#{grant_schema_name}`
+       - `#{grant_context_name}`
+       - `#{authorization_endpoint_name}`
+       - `#{token_endpoint_name}`
       """
+
+      location = Macro.Env.location(__ENV__)
 
       ###########
       # Schemas #
       ###########
 
-      charon_config = Macro.escape(@charon_config)
-      grant_schema = Grant.generate(@schemas_and_contexts, charon_config)
-      client_schema = Client.generate(@schemas_and_contexts, charon_config)
-      auth_schema = Authorization.generate(@schemas_and_contexts, charon_config)
+      charon_config = Macro.escape(charon_config)
+      grant_schema = Grant.generate(schemas_and_contexts, charon_config)
+      client_schema = Client.generate(schemas_and_contexts, charon_config)
+      auth_schema = Authorization.generate(schemas_and_contexts, charon_config)
 
       # generate a dummy module to suppress "assoc not found warnings"
-      Module.create(
-        @authorization_schema,
-        Authorization.gen_dummy(charon_config),
-        Macro.Env.location(__ENV__)
-      )
+      Module.create(authorization_schema_name, Authorization.gen_dummy(charon_config), location)
 
-      Module.create(@grant_schema, grant_schema, Macro.Env.location(__ENV__))
-      Module.create(@client_schema, client_schema, Macro.Env.location(__ENV__))
+      Module.create(grant_schema_name, grant_schema, location)
+      Module.create(client_schema_name, client_schema, location)
       # suppress "redefining module" warning, because we actually want to redefine it :)
       Code.compiler_options(ignore_module_conflict: true)
-      Module.create(@authorization_schema, auth_schema, Macro.Env.location(__ENV__))
+      Module.create(authorization_schema_name, auth_schema, location)
       Code.compiler_options(ignore_module_conflict: false)
 
       ############
       # Contexts #
       ############
 
-      client_context = Clients.generate(@schemas_and_contexts, @repo)
-      grant_context = Grants.generate(@schemas_and_contexts, @repo)
-      authorization_context = Authorizations.generate(@schemas_and_contexts, @repo)
+      client_context = Clients.generate(schemas_and_contexts, repo)
+      grant_context = Grants.generate(schemas_and_contexts, repo)
+      authorization_context = Authorizations.generate(schemas_and_contexts, repo)
 
-      Module.create(@client_context, client_context, Macro.Env.location(__ENV__))
-      Module.create(@grant_context, grant_context, Macro.Env.location(__ENV__))
-      Module.create(@authorization_context, authorization_context, Macro.Env.location(__ENV__))
+      Module.create(client_context_name, client_context, location)
+      Module.create(grant_context_name, grant_context, location)
+      Module.create(authorization_context_name, authorization_context, location)
 
       #########
       # Plugs #
       #########
 
-      authorization_endpoint = AuthorizationEndpoint.generate(@schemas_and_contexts, @repo)
-      Module.create(@authorization_endpoint, authorization_endpoint, Macro.Env.location(__ENV__))
-      token_endpoint = TokenEndpoint.generate(@schemas_and_contexts, @repo)
-      Module.create(@token_endpoint, token_endpoint, Macro.Env.location(__ENV__))
+      authorization_endpoint = AuthorizationEndpoint.generate(schemas_and_contexts, repo)
+      Module.create(authorization_endpoint_name, authorization_endpoint, location)
+
+      token_endpoint = TokenEndpoint.generate(schemas_and_contexts, repo)
+      Module.create(token_endpoint_name, token_endpoint, location)
     end
   end
 end

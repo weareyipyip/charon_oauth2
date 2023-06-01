@@ -1,8 +1,10 @@
 defmodule CharonOauth2.Internal.GenMod.Grants do
   @moduledoc false
 
-  def generate(%{grant: grant_schema}, repo) do
-    quote do
+  def generate(schemas_and_contexts, repo) do
+    quote location: :keep,
+          generated: true,
+          bind_quoted: [schemas_and_contexts: schemas_and_contexts, repo: repo] do
       @moduledoc """
       Context to manage grants
       """
@@ -12,8 +14,8 @@ defmodule CharonOauth2.Internal.GenMod.Grants do
       import Ecto.Query, only: [from: 2, where: 3, limit: 2, offset: 2, order_by: 2]
       import Internal
 
-      @grant_schema unquote(grant_schema)
-      @repo unquote(repo)
+      @grant_schema schemas_and_contexts.grant
+      @repo repo
 
       @doc """
       Get a single grant by one or more clauses, optionally with preloads.
