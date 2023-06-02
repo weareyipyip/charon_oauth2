@@ -406,7 +406,10 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
     test "new grant is created for authorization / user", seeds do
       uid = seeds.user.id
       cid = seeds.client.id
-      auth = insert_test_authorization!(insert_test_user().id, client_id: cid, resource_owner_id: uid)
+
+      auth =
+        insert_test_authorization!(insert_test_user().id, client_id: cid, resource_owner_id: uid)
+
       aid = auth.id
       [redir_uri] = seeds.client.redirect_uris
 

@@ -12,11 +12,25 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
 
   setup do
     client =
-      insert_test_client!(insert_test_user().id, grant_types: ~w(authorization_code refresh_token), scope: ~w(read write))
+      insert_test_client!(insert_test_user().id,
+        grant_types: ~w(authorization_code refresh_token),
+        scope: ~w(read write)
+      )
 
     user = insert_test_user()
-    authorization = insert_test_authorization!(insert_test_user().id, client_id: client.id, resource_owner_id: user.id)
-    grant = insert_test_grant!(insert_test_user().id, authorization_id: authorization.id, resource_owner_id: user.id)
+
+    authorization =
+      insert_test_authorization!(insert_test_user().id,
+        client_id: client.id,
+        resource_owner_id: user.id
+      )
+
+    grant =
+      insert_test_grant!(insert_test_user().id,
+        authorization_id: authorization.id,
+        resource_owner_id: user.id
+      )
+
     opts = TokenEndpoint.init(config: @config)
     [client: client, opts: opts, user: user, authorization: authorization, grant: grant]
   end

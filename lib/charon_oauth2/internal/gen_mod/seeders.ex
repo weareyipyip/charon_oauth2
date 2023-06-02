@@ -108,9 +108,9 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
       end
 
       @base_default_grant %{
-                       redirect_uri: "https://mysite.tld",
-                       type: "my_grant_type"
-                     }
+        redirect_uri: "https://mysite.tld",
+        type: "my_grant_type"
+      }
       @default_grant Map.get(@default_overrides, :grant, %{})
                      |> Enum.into(@base_default_grant)
 
