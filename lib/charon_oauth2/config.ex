@@ -18,7 +18,8 @@ defmodule CharonOauth2.Config do
             grant_ttl: 10 * 60,
             resource_owner_id_column: :id,
             resource_owner_id_type: :bigserial,
-            verify_refresh_token: &CharonOauth2.verify_refresh_token/2
+            verify_refresh_token: &CharonOauth2.verify_refresh_token/2,
+            seeder_overrides: %{client: %{}, authorization: %{}, grant: %{}}
           }
         }
       )

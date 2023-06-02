@@ -1,33 +1,47 @@
 defmodule CharonOauth2.Internal.GenMod.Seeders do
-  @moduledoc """
-
-  """
+  @moduledoc false
 
   def generate(schemas_and_contexts, config) do
     alias CharonOauth2.Internal
+    alias Ecto.Changeset
 
     quote generated: true,
           location: :keep,
           bind_quoted: [schemas_and_contexts: schemas_and_contexts, config: config] do
+      @moduledoc """
+      Helper module to aid in writing seeders. Uses default values described below.
+
+      All default values mentioned can be configured within `CharonOauth2.Config` at `:seeder_overrides`,
+      """
+
       @mod_config Internal.get_module_config(config)
       @authorization_context schemas_and_contexts.authorizations
       @client_context schemas_and_contexts.clients
       @grant_context schemas_and_contexts.grants
+
+      @authorization_schema schemas_and_contexts.authorization
+      @client_schema schemas_and_contexts.client
+      @grant_schema schemas_and_contexts.grant
+
       @repo @mod_config.repo
       @scopes @mod_config.scopes
       @default_overrides @mod_config.seeder_overrides
 
-      # @default_resource_owner %{} |> Map.put_new(@resource_owner_id_column, Ecto.UUID.generate())
-
-      # defp insert_test_resource_owner!(resource_owner_id, overrides \\ []) do
-      #   overrides
-      #   |> Enum.into(@default_resource_owner)
-      #   |> 
-      # end
-
+      @base_default_authorization %{scope: ~w(my_scope)}
       @default_authorization Map.get(@default_overrides, :authorization, %{})
-                             |> Enum.into(%{scope: ~w(my_scope)})
+                             |> Enum.into(@base_default_authorization)
 
+      @doc """
+      Inserts an authorization using `#{inspect(@authorization_context)}.insert/1`.
+
+      Default value's fields can be overwritten using `overrides`.
+
+      ```
+      #{inspect(@base_default_authorization, pretty: true)}
+      ```
+      """
+      @spec insert_test_authorization(integer(), keyword()) ::
+              {:ok, @authorization_schema.t()} | {:error, Changeset.t()}
       def insert_test_authorization(resource_owner_id, overrides \\ []) do
         overrides
         |> Enum.into(@default_authorization)
@@ -36,20 +50,41 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
         |> @authorization_context.insert()
       end
 
+      @doc """
+      Inserts an authorization using `#{inspect(@authorization_context)}.insert/1`. Raises on failure.
+
+      Default value's fields can be overwritten using `overrides`.
+
+      ```
+      #{inspect(@base_default_authorization, pretty: true)}
+      ```
+      """
+      @spec insert_test_authorization!(integer(), keyword()) :: @authorization_schema.t()
       def insert_test_authorization!(resource_owner_id, overrides \\ []) do
         insert_test_authorization(resource_owner_id, overrides)
         |> ok_or_raise("oauth2_authorization")
       end
 
-      @default_client Map.get(@default_overrides, :client, %{})
-                      |> Enum.into(%{
-                        name: "MyClient",
-                        redirect_uris: ~w(https://mysite.tld),
-                        scope: ~w(my_scope my_other_scope),
-                        grant_types: ~w(my_grant_type my_other_grant_type),
-                        description: "MyDescription"
-                      })
+      @base_default_client %{
+        name: "MyClient",
+        redirect_uris: ~w(https://mysite.tld),
+        scope: ~w(my_scope my_other_scope),
+        grant_types: ~w(my_grant_type),
+        description: "MyDescription"
+      }
+      @default_client Map.get(@default_overrides, :client, %{}) |> Enum.into(@base_default_client)
 
+      @doc """
+      Inserts a client using `#{inspect(@client_context)}.insert/1`.
+
+      Default value's fields can be overwritten using `overrides`.
+
+      ```
+      #{inspect(@base_default_client, pretty: true)}
+      ```
+      """
+      @spec insert_test_client(integer(), keyword()) ::
+              {:ok, @client_schema.t()} | {:error, Changeset.t()}
       def insert_test_client(resource_owner_id, overrides \\ []) do
         overrides
         |> Enum.into(@default_client)
@@ -57,20 +92,39 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
         |> @client_context.insert()
       end
 
+      @doc """
+      Inserts a client using `#{inspect(@client_context)}.insert/1`. Raises on failure.
+
+      Default value's fields can be overwritten using `overrides`.
+
+      ```
+      #{inspect(@base_default_client, pretty: true)}
+      ```
+      """
+      @spec insert_test_client!(integer(), keyword()) :: @client_schema.t()
       def insert_test_client!(resource_owner_id, overrides \\ []) do
         insert_test_client(resource_owner_id, overrides)
         |> ok_or_raise("oauth2_client")
       end
 
-      @default_grant Map.get(@default_overrides, :grant, %{})
-                     |> Enum.into(%{
+      @base_default_grant %{
                        redirect_uri: "https://mysite.tld",
                        type: "my_grant_type"
-                     })
+                     }
+      @default_grant Map.get(@default_overrides, :grant, %{})
+                     |> Enum.into(@base_default_grant)
 
-      def insert_test_grant(), do: raise("nuh uh")
-      def insert_test_grant!(), do: raise("nuh uh")
+      @doc """
+      Inserts a grant using `#{inspect(@grant_context)}.insert/1`.
 
+      Default value's fields can be overwritten using `overrides`.
+
+      ```
+      #{inspect(@base_default_grant, pretty: true)}
+      ```
+      """
+      @spec insert_test_grant(integer(), keyword()) ::
+              {:ok, @grant_schema.t()} | {:error, Changeset.t()}
       def insert_test_grant(resource_owner_id, overrides \\ []) do
         overrides
         |> Enum.into(@default_grant)
@@ -81,6 +135,16 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
         |> @grant_context.insert()
       end
 
+      @doc """
+      Inserts a grant using `#{inspect(@grant_context)}.insert/1`. Raises on failure.
+
+      Default value's fields can be overwritten using `overrides`.
+
+      ```
+      #{inspect(@base_default_grant, pretty: true)}
+      ```
+      """
+      @spec insert_test_grant!(integer(), keyword()) :: @grant_schema.t()
       def insert_test_grant!(resource_owner_id, overrides \\ []) do
         insert_test_grant(resource_owner_id, overrides)
         |> ok_or_raise("oauth2_grant")
