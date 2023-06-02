@@ -10,7 +10,12 @@ defmodule MyApp.CharonOauth2.Config do
               CharonOauth2 => %{
                 scopes: ~w(read write party),
                 resource_owner_schema: MyApp.User,
-                repo: MyApp.Repo
+                repo: MyApp.Repo,
+                seeder_overrides: %{
+                  client: %{scope: ~w(read), grant_types: ~w(authorization_code)},
+                  authorization: %{scope: ~w(read)},
+                  grant: %{type: "authorization_code"}
+                }
               }
             }
           )

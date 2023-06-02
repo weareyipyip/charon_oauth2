@@ -15,6 +15,7 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
       @grant_context schemas_and_contexts.grants
       @repo @mod_config.repo
       @scopes @mod_config.scopes
+      @default_overrides @mod_config.seeder_overrides
 
       # @default_resource_owner %{} |> Map.put_new(@resource_owner_id_column, Ecto.UUID.generate())
 
@@ -24,9 +25,8 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
       #   |> 
       # end
 
-      @default_authorization %{
-        scope: ~w(read)
-      }
+      @default_authorization Map.get(@default_overrides, :authorization, %{})
+                             |> Enum.into(%{scope: ~w(my_scope)})
 
       def insert_test_authorization(resource_owner_id, overrides \\ []) do
         overrides
@@ -41,13 +41,14 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
         |> ok_or_raise("oauth2_authorization")
       end
 
-      @default_client %{
-        name: "MyClient",
-        redirect_uris: ~w(https://mysite.tld),
-        scope: ~w(read),
-        grant_types: ~w(authorization_code),
-        description: "MyDescription"
-      }
+      @default_client Map.get(@default_overrides, :client, %{})
+                      |> Enum.into(%{
+                        name: "MyClient",
+                        redirect_uris: ~w(https://mysite.tld),
+                        scope: ~w(my_scope my_other_scope),
+                        grant_types: ~w(my_grant_type my_other_grant_type),
+                        description: "MyDescription"
+                      })
 
       def insert_test_client(resource_owner_id, overrides \\ []) do
         overrides
@@ -61,10 +62,11 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
         |> ok_or_raise("oauth2_client")
       end
 
-      @default_grant %{
-        redirect_uri: "https://mysite.tld",
-        type: "authorization_code"
-      }
+      @default_grant Map.get(@default_overrides, :grant, %{})
+                     |> Enum.into(%{
+                       redirect_uri: "https://mysite.tld",
+                       type: "my_grant_type"
+                     })
 
       def insert_test_grant(), do: raise("nuh uh")
       def insert_test_grant!(), do: raise("nuh uh")
