@@ -16,21 +16,20 @@ defmodule MyApp.Seeds do
     grant_types: ~w(authorization_code),
     description: "Incredible app that totally respects your privacy."
   }
+  def my_insert_test_user() do
+    User.changeset() |> Repo.insert!()
+  end
 
   def client_params(overrides \\ []) do
     id_field = @mod_config.resource_owner_id_column
 
     @default_client_params
     |> Map.merge(Map.new(overrides))
-    |> Map.put_new_lazy(:owner_id, fn -> insert_test_user() |> Map.get(id_field) end)
+    |> Map.put_new_lazy(:owner_id, fn -> my_insert_test_user() |> Map.get(id_field) end)
   end
 
   def insert_test_client(overrides \\ []) do
     overrides |> client_params() |> Clients.insert() |> bang!()
-  end
-
-  def insert_test_user() do
-    User.changeset() |> Repo.insert!()
   end
 
   @default_authorization_params %{scope: ~w(read)}
@@ -40,7 +39,7 @@ defmodule MyApp.Seeds do
 
     @default_authorization_params
     |> Map.merge(Map.new(overrides))
-    |> Map.put_new_lazy(:resource_owner_id, fn -> insert_test_user() |> Map.get(id_field) end)
+    |> Map.put_new_lazy(:resource_owner_id, fn -> my_insert_test_user() |> Map.get(id_field) end)
     |> Map.put_new_lazy(:client_id, fn -> insert_test_client().id end)
   end
 

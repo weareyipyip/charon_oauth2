@@ -47,7 +47,7 @@ defmodule CharonOauth2 do
   end
 
   defmacro __using__(config) do
-    quote generated: true, bind_quoted: [charon_config: config] do
+    quote generated: true, bind_quoted: [charon_config: config], location: :keep do
       mod_config = Internal.get_module_config(charon_config)
       repo = mod_config.repo
       client_schema_name = __MODULE__.Client

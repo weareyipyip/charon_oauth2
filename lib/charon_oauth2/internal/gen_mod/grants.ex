@@ -23,16 +23,16 @@ defmodule CharonOauth2.Internal.GenMod.Grants do
 
       ## Doctests
 
-          iex> grant = insert_test_grant()
+          iex> grant = insert_test_grant!(insert_test_user().id)
           iex> %Grant{} = Grants.get_by(id: grant.id)
           iex> nil = Grants.get_by(id: grant.id + 1)
 
           # preloads things
-          iex> grant = insert_test_grant()
+          iex> grant = insert_test_grant!(insert_test_user().id)
           iex> %{authorization: %{client: %{id: _}}} = Grants.get_by([id: grant.id], Grant.supported_preloads)
 
           # a grant can be retrieved by its code (actually by the HMAC of its code)
-          iex> %{id: id, code: code} = insert_test_grant()
+          iex> %{id: id, code: code} = insert_test_grant!(insert_test_user().id)
           iex> ^id = Grants.get_by(code: code).id
       """
       @spec get_by(keyword | map, [@grant_schema.resolvable]) :: @grant_schema.t() | nil
@@ -45,11 +45,11 @@ defmodule CharonOauth2.Internal.GenMod.Grants do
 
       ## Doctests
 
-          iex> insert_test_grant()
+          iex> insert_test_grant!(insert_test_user().id)
           iex> [%Grant{}] = Grants.all()
 
           # can be filtered
-          iex> grant = insert_test_grant()
+          iex> grant = insert_test_grant!(insert_test_user().id)
           iex> [%Grant{}] = Grants.all(%{authorization_id: grant.authorization_id})
           iex> [%Grant{}] = Grants.all(%{code: grant.code})
           iex> [] = Grants.all(%{authorization_id: grant.authorization_id + 1})
@@ -79,35 +79,35 @@ defmodule CharonOauth2.Internal.GenMod.Grants do
       ## Examples / doctests
 
           # succesfully creates a grant
-          iex> {:ok, _} = insert_test_grant()
+          iex> {:ok, _} = insert_test_grant(insert_test_user().id)
 
           iex> Grants.insert(%{}) |> errors_on()
           %{authorization_id: ["can't be blank"], type: ["can't be blank"], resource_owner_id: ["can't be blank"]}
 
           # authorization must exist
-          iex> insert_test_grant(authorization_id: -1) |> errors_on()
+          iex> insert_test_grant(insert_test_user().id, authorization_id: -1) |> errors_on()
           %{authorization: ["does not exist"]}
 
           # resource owner must exist and must match the authorization's owner
-          iex> insert_test_grant(resource_owner_id: -1) |> errors_on()
+          iex> insert_test_grant(insert_test_user().id, resource_owner_id: -1) |> errors_on()
           %{authorization_id: ["belongs to other resource owner"]}
 
           # type must be one of client grant_type's
-          iex> client = insert_test_client!(grant_types: ~w(refresh_token))
-          iex> authorization = insert_test_authorization!(client_id: client.id)
-          iex> insert_test_grant(authorization_id: authorization.id) |> errors_on()
+          iex> client = insert_test_client!(insert_test_user().id, grant_types: ~w(refresh_token))
+          iex> authorization = insert_test_authorization!(insert_test_user().id, client_id: client.id)
+          iex> insert_test_grant(insert_test_user().id, authorization_id: authorization.id) |> errors_on()
           %{type: ["not supported by client"]}
 
           # redirect_uri must be one of client redirect_uri's
-          iex> insert_test_grant(redirect_uri: "https://boom") |> errors_on()
+          iex> insert_test_grant(insert_test_user().id, redirect_uri: "https://boom") |> errors_on()
           %{redirect_uri: ["does not match client"]}
 
           # redirect_uri is required if client has multiple uris set
-          iex> client = insert_test_client!(redirect_uris: ~w(https://a https://b))
-          iex> authorization = insert_test_authorization!(client_id: client.id)
-          iex> insert_test_grant(authorization_id: authorization.id, redirect_uri: nil) |> errors_on()
+          iex> client = insert_test_client!(insert_test_user().id, redirect_uris: ~w(https://a https://b))
+          iex> authorization = insert_test_authorization!(insert_test_user().id, client_id: client.id)
+          iex> insert_test_grant(insert_test_user().id, authorization_id: authorization.id, redirect_uri: nil) |> errors_on()
           %{redirect_uri: ["can't be blank"]}
-          iex> insert_test_grant(authorization_id: authorization.id, redirect_uri: "https://c") |> errors_on()
+          iex> insert_test_grant(insert_test_user().id, authorization_id: authorization.id, redirect_uri: "https://c") |> errors_on()
           %{redirect_uri: ["does not match client"]}
       """
       @spec insert(map) :: {:ok, @grant_schema.t()} | {:error, Changeset.t()}
@@ -122,7 +122,7 @@ defmodule CharonOauth2.Internal.GenMod.Grants do
           iex> {:error, :not_found} = Grants.delete(id: -1)
 
           # succesfully deletes a grant
-          iex> grant = insert_test_grant!()
+          iex> grant = insert_test_grant!(insert_test_user().id)
           iex> {:ok, _} = Grants.delete([id: grant.id])
           iex> {:error, :not_found} = Grants.delete([id: grant.id])
       """
@@ -139,8 +139,8 @@ defmodule CharonOauth2.Internal.GenMod.Grants do
 
       ## Examples / doctests
 
-          iex> valid = insert_test_grant()
-          iex> expired = insert_test_grant()
+          iex> valid = insert_test_grant!(insert_test_user().id)
+          iex> expired = insert_test_grant!(insert_test_user().id)
           iex> past = DateTime.utc_now() |> DateTime.add(-10)
           iex> from(t in Grant, where: t.id == ^expired.id) |> Repo.update_all(set: [expires_at: past])
           iex> Grants.delete_expired()
