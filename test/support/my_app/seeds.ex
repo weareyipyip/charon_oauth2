@@ -16,6 +16,7 @@ defmodule MyApp.Seeds do
     grant_types: ~w(authorization_code),
     description: "Incredible app that totally respects your privacy."
   }
+
   def my_insert_test_user() do
     User.changeset() |> Repo.insert!()
   end

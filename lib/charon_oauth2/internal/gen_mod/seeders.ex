@@ -25,7 +25,7 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
       # end
 
       @default_authorization %{
-        scope: @scopes
+        scope: ~w(read)
       }
 
       def insert_test_authorization(resource_owner_id, overrides \\ []) do
@@ -44,8 +44,8 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
       @default_client %{
         name: "MyClient",
         redirect_uris: ~w(https://mysite.tld),
-        scope: @scopes,
-        grant_types: "authorization_code",
+        scope: ~w(read),
+        grant_types: ~w(authorization_code),
         description: "MyDescription"
       }
 

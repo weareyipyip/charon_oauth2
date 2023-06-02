@@ -1,7 +1,7 @@
 defmodule CharonOauth2.Models.AuthorizationsTest do
   use CharonOauth2.DataCase
   alias MyApp.CharonOauth2.{Authorizations, Authorization}
-  import MyApp.Seeds
+  import MyApp.CharonOauth2.Seeders
 
   describe "all" do
     test "works" do
