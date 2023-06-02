@@ -15,15 +15,26 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
       @grant_context schemas_and_contexts.grants
       @repo @mod_config.repo
       @scopes @mod_config.scopes
+      @user_id_field @mod_config.resource_owner_id_column |> IO.inspect()
 
       @default_authorization %{
         scope: @scopes
       }
 
+      defp insert_test_user!(), do: %{id: 0}
+
       def insert_test_authorization(overrides \\ []) do
         overrides
         |> Enum.into(@default_authorization)
+        |> Map.put_new_lazy(:resource_owner_id, fn ->
+          insert_test_user!() |> Map.get(@user_id_field)
+        end)
+        |> Map.put_new_lazy(:client_id, fn -> insert_test_client!().id end)
         |> @authorization_context.insert()
+      end
+
+      def insert_test_authorization!(overrides \\ []) do
+        insert_test_authorization(overrides)
         |> ok_or_raise("oauth2_authorization")
       end
 
@@ -31,7 +42,7 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
         name: "MyClient",
         redirect_uris: ~w(https://mysite.tld),
         scope: @scopes,
-        grant_types: "my_grant_type,my_other_grant_type",
+        grant_types: "authorization_code",
         description: "MyDescription"
       }
 
@@ -39,18 +50,28 @@ defmodule CharonOauth2.Internal.GenMod.Seeders do
         overrides
         |> Enum.into(@default_client)
         |> @client_context.insert()
+      end
+
+      def insert_test_client!(overrides \\ []) do
+        insert_test_client(overrides)
         |> ok_or_raise("oauth2_client")
       end
 
       @default_grant %{
         redirect_uri: "https://mysite.tld",
-        type: "my_grant_type"
+        type: "authorization_code"
       }
 
       def insert_test_grant(overrides \\ []) do
         overrides
         |> Enum.into(@default_grant)
+        |> Map.put_new_lazy(:authorization_id, fn -> insert_test_authorization!().id end)
+        |> put_new_resource_owner(@authorization_context)
         |> @grant_context.insert()
+      end
+
+      def insert_test_grant!(overrides \\ []) do
+        insert_test_grant(overrides)
         |> ok_or_raise("oauth2_grant")
       end
 
