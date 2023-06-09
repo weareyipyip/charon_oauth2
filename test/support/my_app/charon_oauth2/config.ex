@@ -10,7 +10,8 @@ defmodule MyApp.CharonOauth2.Config do
               CharonOauth2 => %{
                 scopes: ~w(read write party),
                 resource_owner_schema: MyApp.User,
-                repo: MyApp.Repo
+                repo: MyApp.Repo,
+                token_endpoint_allowed_origin: "http://myapp.com"
               }
             }
           )

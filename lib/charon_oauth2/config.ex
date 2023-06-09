@@ -38,6 +38,8 @@ defmodule CharonOauth2.Config do
    - `:resource_owner_id_type` the type, as an atom, of the resource owner's schema's primary key
    - `:resource_owner_table` the name of the table in resource owners are stored. Taken from `:resource_owner_schema` unless set.
    - `:verify_refresh_token` a function that you can use to verify an Oauth2 refresh token for the refresh token grant.
+  - `:token_endpoint_allowed_origin` a flag indicating whether `MyApp.TokenEndpoint` should implement a response to `OPTIONS` requests.
+  - `:token_endpoint_allowed_origin` value of the `access-control-allow-origin` header in `MyApp.TokenEndpoint` responses.
 
   """
   @enforce_keys [:scopes, :repo, :resource_owner_schema]

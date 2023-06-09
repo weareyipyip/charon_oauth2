@@ -131,7 +131,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         ]
 
         headers = [
-          {"access-control-allow-methods", "POST"},
+          {"access-control-allow-methods", "OPTIONS, POST"},
           {"access-control-allow-headers", Enum.join(allowed_headers, ", ")},
           {"access-control-allow-origin", origin}
         ]
