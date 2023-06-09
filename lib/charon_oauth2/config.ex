@@ -60,7 +60,6 @@ defmodule CharonOauth2.Config do
     verify_refresh_token: &CharonOauth2.verify_refresh_token/2,
     token_endpoint_enable_options: true,
     token_endpoint_allowed_origin: "*"
-  
   ]
 
   @type t :: %__MODULE__{
