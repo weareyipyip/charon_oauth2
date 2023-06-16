@@ -73,6 +73,18 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
       def init(opts) do
         config = Keyword.fetch!(opts, :config)
         config = %{config | session_ttl: :infinite}
+
+        # Charon 3.1 compatibility
+        config =
+          config
+          |> case do
+            config = %{enforce_browser_cookies: true} ->
+              %{config | enforce_browser_cookies: false}
+
+            _ ->
+              config
+          end
+
         mod_conf = CharonOauth2.Internal.get_module_config(config)
         %{config: config, mod_conf: mod_conf}
       end
