@@ -2,6 +2,13 @@ defmodule CharonOauth2.Config do
   @moduledoc """
   Config module for `CharonOauth2`.
 
+  Unlike `Charon` itself, not all config is runtime config.
+  That means overriding some configuration options at runtime may not result in the expected behaviour.
+  The reason for this is that several configuration values are read at compile time in order to generate code using macros.
+  These config options are also read by the migration helper `CharonOauth2.Migration`,
+  and you should generally not change them after initializing CharonOauth2.
+  The glossary below specifies which config options are affected.
+
       Charon.Config.from_enum(
         ...,
         optional_modules: %{
@@ -23,20 +30,20 @@ defmodule CharonOauth2.Config do
         }
       )
 
-  ## Supported config options
+  ## Glossary
 
-   - `:repo` (required) the Ecto repo module of your application.
-   - `:resource_owner_schema` (required) the user schema module of your application.
-   - `:scopes` (required) the scopes that are available to Oauth2 apps, application-wide.
-   - `:authorizations_table` the name of the table in which to store authorizations.
-   - `:clients_table` the name of the table in which to store clients.
+   - `:authorizations_table` (compile-time) the name of the table in which to store authorizations.
+   - `:clients_table` (compile-time) the name of the table in which to store clients.
    - `:customize_session_upsert_args` a function that you can use to customize the arguments that are passed by your `MyApp.TokenEndpoint` to `Charon.SessionPlugs.upsert_session/3`. Be careful, usually you might want to add to these arguments, but not override them.
    - `:enforce_pkce` for `:public`, `:all` or `:no` clients
    - `:grant_ttl` time in seconds that a grant (mostly authorization code) takes to expire
-   - `:grants_table` the name of the table in which to store grants
-   - `:resource_owner_id_column` the column name, as an atom, of the resource owner's schema's primary key
-   - `:resource_owner_id_type` the type, as an atom, of the resource owner's schema's primary key
-   - `:resource_owner_table` the name of the table in resource owners are stored. Taken from `:resource_owner_schema` unless set.
+   - `:grants_table` (compile-time) the name of the table in which to store grants
+   - `:repo` (required, compile-time) the Ecto repo module of your application.
+   - `:resource_owner_id_column` (compile-time) the column name, as an atom, of the resource owner's schema's primary key
+   - `:resource_owner_id_type` (compile-time) the type, as an atom, of the resource owner's schema's primary key
+   - `:resource_owner_schema` (required, compile-time) the user schema module of your application.
+   - `:resource_owner_table` (compile-time) the name of the table in resource owners are stored. Taken from `:resource_owner_schema` unless set.
+   - `:scopes` (required, compile time) the scopes that are available to Oauth2 apps, application-wide.
    - `:verify_refresh_token` a function that you can use to verify an Oauth2 refresh token for the refresh token grant.
 
   """
