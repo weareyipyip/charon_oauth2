@@ -147,9 +147,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           scopes = Map.get(cs.changes, :scope, authorization.scope)
 
           conn
-          |> Utils.set_token_signature_transport(:bearer)
-          |> Utils.set_user_id(grant.resource_owner_id)
-          |> upsert_session(authorization, scopes, opts)
+          |> upsert_session(authorization, scopes, opts, user_id: grant.resource_owner_id)
           |> send_token_response(scopes, now, opts)
         else
           # https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
@@ -202,7 +200,6 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           scopes = Map.get(cs.changes, :scope, authorization.scope)
 
           conn
-          |> Utils.set_token_signature_transport(:bearer)
           |> upsert_session(authorization, scopes, opts)
           |> send_token_response(scopes, now(), opts)
         end
@@ -248,19 +245,18 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         end
       end
 
-      defp upsert_session(conn, authorization, scopes, %{config: config, mod_conf: mod_conf}) do
+      defp upsert_session(conn, authorization, scopes, opts, upsert_opts \\ []) do
         %{client_id: cid} = authorization
 
-        [
-          conn,
-          config,
-          [
-            session_type: :oauth2,
-            access_claim_overrides: %{"cid" => cid, "scope" => scopes},
-            refresh_claim_overrides: %{"cid" => cid}
-          ]
+        base_upsert_opts = [
+          token_transport: :bearer,
+          session_type: :oauth2,
+          access_claim_overrides: %{"cid" => cid, "scope" => scopes},
+          refresh_claim_overrides: %{"cid" => cid}
         ]
-        |> mod_conf.customize_session_upsert_args.()
+
+        [conn, opts.config, base_upsert_opts ++ upsert_opts]
+        |> opts.mod_conf.customize_session_upsert_args.()
         |> then(&apply(SessionPlugs, :upsert_session, &1))
       end
 
