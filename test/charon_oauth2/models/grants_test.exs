@@ -1,7 +1,7 @@
 defmodule CharonOauth2.Models.GrantsTest do
   use CharonOauth2.DataCase
   alias MyApp.CharonOauth2.{Grants, Grant}
-  import MyApp.Seeds
+  import MyApp.CharonOauth2.Seeders
 
   test "all bindings resolvable" do
     assert %Ecto.Query{} =

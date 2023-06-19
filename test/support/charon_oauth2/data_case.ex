@@ -2,6 +2,8 @@ defmodule CharonOauth2.DataCase do
   @moduledoc false
 
   use ExUnit.CaseTemplate
+  alias MyApp.Repo
+  alias MyApp.User
 
   using do
     quote do
@@ -38,4 +40,8 @@ defmodule CharonOauth2.DataCase do
 
   def errors_on({:error, changeset}), do: errors_on(changeset)
   def errors_on(other), do: other
+
+  def insert_test_user() do
+    User.changeset() |> Repo.insert!()
+  end
 end

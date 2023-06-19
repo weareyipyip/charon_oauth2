@@ -2,7 +2,8 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
   use CharonOauth2.DataCase
   alias Charon.Models.Session
   alias MyApp.CharonOauth2.{Plugs.TokenEndpoint, Grants, Clients}
-  import MyApp.{Seeds, TestUtils}
+  import MyApp.TestUtils
+  import MyApp.CharonOauth2.Seeders
   import Plug.Test
   import Plug.Conn
   import Charon.{Internal, Utils, TestHelpers}
@@ -11,11 +12,25 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
 
   setup do
     client =
-      insert_test_client(grant_types: ~w(authorization_code refresh_token), scope: ~w(read write))
+      insert_test_client!(insert_test_user().id,
+        grant_types: ~w(authorization_code refresh_token),
+        scope: ~w(read write)
+      )
 
     user = insert_test_user()
-    authorization = insert_test_authorization(client_id: client.id, resource_owner_id: user.id)
-    grant = insert_test_grant(authorization_id: authorization.id, resource_owner_id: user.id)
+
+    authorization =
+      insert_test_authorization!(insert_test_user().id,
+        client_id: client.id,
+        resource_owner_id: user.id
+      )
+
+    grant =
+      insert_test_grant!(insert_test_user().id,
+        authorization_id: authorization.id,
+        resource_owner_id: user.id
+      )
+
     opts = TokenEndpoint.init(config: @config)
     [client: client, opts: opts, user: user, authorization: authorization, grant: grant]
   end
@@ -301,7 +316,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
     end
 
     test "client_id must match the code's grant", seeds do
-      other_client = insert_test_client()
+      other_client = insert_test_client!(insert_test_user().id)
 
       assert %{
                "error" => "invalid_grant",
