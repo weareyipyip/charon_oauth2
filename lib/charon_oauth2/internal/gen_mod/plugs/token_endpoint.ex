@@ -93,6 +93,8 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
       def call(conn = %{method: "POST", path_info: []}, opts) do
         conn =
           Parsers.call(conn, @parser_opts)
+          # is this needed? The request should already be preflighted...
+          # maybe not if client credentials are not passed via the authorization header
           |> put_resp_header("access-control-allow-origin", "*")
 
         params = conn.body_params |> Map.put("auth_header", get_req_header(conn, "authorization"))
@@ -128,26 +130,14 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         end
       end
 
-      def call(conn = %{method: "OPTIONS", path_info: []}, %{
-            mod_conf: %{token_endpoint_enable_options: true} = mod_conf
-          }) do
-        additional_allowed_headers =
-          Map.get(mod_conf, :token_endpoint_additional_allowed_headers, [])
-
-        allowed_headers =
-          [
-            "Content-Type",
-            "Authorization"
-          ] ++ additional_allowed_headers
-
-        headers = [
-          {"access-control-allow-methods", "OPTIONS, POST"},
-          {"access-control-allow-headers", Enum.join(allowed_headers, ", ")},
-          {"access-control-allow-origin", "*"}
-        ]
-
+      # CORS preflight request for browser clients
+      def call(conn = %{method: "OPTIONS", path_info: []}, %{mod_conf: mod_conf}) do
         conn
-        |> merge_resp_headers(headers)
+        |> merge_resp_headers(%{
+          "access-control-allow-methods" => "POST",
+          "access-control-allow-headers" => "authorization",
+          "access-control-allow-origin" => "*"
+        })
         |> send_resp(204, "")
       end
 

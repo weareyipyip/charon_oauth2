@@ -269,14 +269,14 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> json_response(400)
     end
 
-    test "OPTIONS request", seeds do
+    test "CORS preflight request", seeds do
       assert %{status: 204} =
                conn(:options, "/")
                |> TokenEndpoint.call(seeds.opts)
                |> assert_resp_headers(%{
                  "access-control-allow-origin" => "*",
-                 "access-control-allow-methods" => "OPTIONS, POST",
-                 "access-control-allow-headers" => "Content-Type, Authorization, X-My-Header"
+                 "access-control-allow-methods" => "POST",
+                 "access-control-allow-headers" => "authorization"
                })
     end
 

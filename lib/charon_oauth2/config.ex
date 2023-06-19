@@ -47,8 +47,6 @@ defmodule CharonOauth2.Config do
    - `:scopes` (required, compile time) the scopes that are available to Oauth2 apps, application-wide.
    - `:test_seed_defaults` override default values for test models used in `CharonOauth2.TestSeeds`.
    - `:verify_refresh_token` a function that you can use to verify an Oauth2 refresh token for the refresh token grant.
-  - `:token_endpoint_enable_options` a flag indicating whether `MyApp.TokenEndpoint` should implement a response to `OPTIONS` requests.
-  - `:token_endpoint_additional_allowed_headers` value of the `access-control-allowed-headers` header in `MyApp.TokenEndpoint` responses in addition to the required `Content-Type` and `Authorization`.
 
   """
   @enforce_keys [:scopes, :repo, :resource_owner_schema]
@@ -67,8 +65,6 @@ defmodule CharonOauth2.Config do
     resource_owner_id_type: :bigserial,
     resource_owner_table: nil,
     test_seed_defaults: [],
-    token_endpoint_additional_allowed_headers: "*",
-    token_endpoint_enable_options: true,
     verify_refresh_token: &CharonOauth2.verify_refresh_token/2
   ]
 
@@ -90,8 +86,6 @@ defmodule CharonOauth2.Config do
             grant: keyword | map,
             authorization: keyword | map
           ],
-          token_endpoint_enable_options: boolean(),
-          token_endpoint_additional_allowed_headers: list(),
           verify_refresh_token: (Plug.Conn.t(), Charon.Config.t() -> Plug.Conn.t())
         }
 
