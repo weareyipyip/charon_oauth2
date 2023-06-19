@@ -135,7 +135,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         conn
         |> merge_resp_headers(%{
           "access-control-allow-methods" => "POST",
-          "access-control-allow-headers" => "authorization",
+          "access-control-allow-headers" => "authorization,content-type",
           "access-control-allow-origin" => "*"
         })
         |> send_resp(204, "")
