@@ -38,8 +38,8 @@ defmodule CharonOauth2.Config do
    - `:resource_owner_id_type` the type, as an atom, of the resource owner's schema's primary key
    - `:resource_owner_table` the name of the table in resource owners are stored. Taken from `:resource_owner_schema` unless set.
    - `:verify_refresh_token` a function that you can use to verify an Oauth2 refresh token for the refresh token grant.
-  - `:token_endpoint_allowed_origin` a flag indicating whether `MyApp.TokenEndpoint` should implement a response to `OPTIONS` requests.
-  - `:token_endpoint_allowed_origin` value of the `access-control-allow-origin` header in `MyApp.TokenEndpoint` responses.
+  - `:token_endpoint_enable_options` a flag indicating whether `MyApp.TokenEndpoint` should implement a response to `OPTIONS` requests.
+  - `:token_endpoint_additional_allowed_headers` value of the `access-control-allowed-headers` header in `MyApp.TokenEndpoint` responses in addition to the required `Content-Type` and `Authorization`.
 
   """
   @enforce_keys [:scopes, :repo, :resource_owner_schema]
@@ -59,7 +59,7 @@ defmodule CharonOauth2.Config do
     resource_owner_table: nil,
     verify_refresh_token: &CharonOauth2.verify_refresh_token/2,
     token_endpoint_enable_options: true,
-    token_endpoint_allowed_origin: "*"
+    token_endpoint_additional_allowed_headers: "*"
   ]
 
   @type t :: %__MODULE__{
@@ -77,7 +77,7 @@ defmodule CharonOauth2.Config do
           scopes: [String.t()],
           verify_refresh_token: (Plug.Conn.t(), Charon.Config.t() -> Plug.Conn.t()),
           token_endpoint_enable_options: boolean(),
-          token_endpoint_allowed_origin: binary()
+          token_endpoint_additional_allowed_headers: list()
         }
 
   @doc """

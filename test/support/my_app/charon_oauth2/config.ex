@@ -11,7 +11,7 @@ defmodule MyApp.CharonOauth2.Config do
                 scopes: ~w(read write party),
                 resource_owner_schema: MyApp.User,
                 repo: MyApp.Repo,
-                token_endpoint_allowed_origin: "http://myapp.com"
+                token_endpoint_additional_allowed_headers: ["X-My-Header"]
               }
             }
           )
