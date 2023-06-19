@@ -11,6 +11,7 @@ defmodule MyApp.CharonOauth2.Config do
                 scopes: ~w(read write party),
                 resource_owner_schema: MyApp.User,
                 repo: MyApp.Repo,
+                test_seed_defaults: [authorization: [scope: ~w(read)], client: [scope: ~w(read)]],
                 token_endpoint_additional_allowed_headers: ["X-My-Header"]
               }
             }

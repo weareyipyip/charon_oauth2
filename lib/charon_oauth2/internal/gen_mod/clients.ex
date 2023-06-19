@@ -22,14 +22,14 @@ defmodule CharonOauth2.Internal.GenMod.Clients do
 
       ## Doctests
 
-          iex> client = insert_test_client()
+          iex> client = insert_test_client!(insert_test_user().id)
           iex> %Client{} = Clients.get_by(id: client.id)
           iex> nil = Clients.get_by(id: Ecto.UUID.generate())
 
           # preloads things
-          iex> client = insert_test_client()
-          iex> auth = insert_test_authorization(client_id: client.id)
-          iex> insert_test_grant(authorization_id: auth.id)
+          iex> client = insert_test_client!(insert_test_user().id)
+          iex> auth = insert_test_authorization!(insert_test_user().id, client_id: client.id)
+          iex> insert_test_grant!(insert_test_user().id, authorization_id: auth.id)
           iex> %{owner: %{id: _}, authorizations: [_]} = Clients.get_by([id: client.id], Client.supported_preloads)
       """
       @spec get_by(keyword | map, [@client_schema.resolvable]) :: @client_schema.t() | nil
@@ -42,11 +42,11 @@ defmodule CharonOauth2.Internal.GenMod.Clients do
 
       ## Doctests
 
-          iex> client = insert_test_client()
+          iex> client = insert_test_client!(insert_test_user().id)
           iex> [^client] = Clients.all()
 
           # can be filtered
-          iex> client = insert_test_client()
+          iex> client = insert_test_client!(insert_test_user().id)
           iex> [^client] = Clients.all(%{owner_id: client.owner_id})
           iex> [^client] = Clients.all(%{grant_types: "authorization_code"})
           iex> [] = Clients.all(%{owner_id: client.owner_id + 1})
@@ -79,11 +79,11 @@ defmodule CharonOauth2.Internal.GenMod.Clients do
 
           # succesfully creates a client with a secret
           iex> user = insert_test_user()
-          iex> {:ok, client} = client_params(owner_id: user.id) |> Clients.insert()
+          iex> {:ok, client} = insert_test_client(user.id)
           iex> %{secret: <<_::binary>>} = client
 
           # owner must exist
-          iex> client_params(owner_id: -1) |> Clients.insert() |> errors_on()
+          iex> insert_test_client(-1) |> errors_on()
           %{owner: ["does not exist"]}
 
           iex> Clients.insert(%{}) |> errors_on()
@@ -102,29 +102,29 @@ defmodule CharonOauth2.Internal.GenMod.Clients do
 
       ## Examples / doctests
 
-          iex> client = insert_test_client()
+          iex> client = insert_test_client!(insert_test_user().id)
           iex> {:ok, updated} = Clients.update(client, %{secret: "new!"})
           iex> false = updated.secret == client.secret
 
           # secret is randomly generated on update
-          iex> client = insert_test_client()
+          iex> client = insert_test_client!(insert_test_user().id)
           iex> {:ok, updated} = Clients.update([id: client.id], %{secret: "new!"})
           iex> false = updated.secret == client.secret
           iex> false = updated.secret == "new!"
 
           # scopes must be subset of configured scopes
-          iex> client = insert_test_client()
+          iex> client = insert_test_client!(insert_test_user().id)
           iex> Clients.update([id: client.id], %{scope: ~w(cry)}) |> errors_on()
           %{scope: ["must be subset of party, read, write"]}
 
           # underlying authrorization scopes are reduced to client's reduced scopes
-          iex> client = insert_test_client(scope: ~w(read write))
-          iex> authorization = insert_test_authorization(client_id: client.id, scope: ~w(read write))
+          iex> client = insert_test_client!(insert_test_user().id, scope: ~w(read write))
+          iex> authorization = insert_test_authorization!(insert_test_user().id, client_id: client.id, scope: ~w(read write))
           iex> {:ok, _} = Clients.update([id: client.id], %{scope: ~w(read)})
           iex> %{scope: ~w(read)} = Authorizations.get_by(id: authorization.id)
 
           # id and owner id can't be updated
-          iex> %{id: id, owner_id: owner_id} = insert_test_client()
+          iex> %{id: id, owner_id: owner_id} = insert_test_client!(insert_test_user().id)
           iex> {:ok, %{id: ^id, owner_id: ^owner_id}} = Clients.update([id: id], %{id: Ecto.UUID.generate(), owner_id: -1})
       """
       @spec update(@client_schema.t() | keyword() | map, map) ::
@@ -146,7 +146,7 @@ defmodule CharonOauth2.Internal.GenMod.Clients do
           iex> {:error, :not_found} = Clients.delete(id: Ecto.UUID.generate())
 
           # succesfully deletes a client
-          iex> client = insert_test_client()
+          iex> client = insert_test_client!(insert_test_user().id)
           iex> {:ok, _} = Clients.delete([id: client.id])
           iex> {:error, :not_found} = Clients.delete([id: client.id])
       """

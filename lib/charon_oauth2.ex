@@ -10,7 +10,8 @@ defmodule CharonOauth2 do
     Client,
     Clients,
     Grant,
-    Grants
+    Grants,
+    TestSeeds
   }
 
   alias CharonOauth2.Internal.GenMod.Plugs.{AuthorizationEndpoint, TokenEndpoint}
@@ -46,7 +47,7 @@ defmodule CharonOauth2 do
   end
 
   defmacro __using__(config) do
-    quote generated: true, bind_quoted: [charon_config: config] do
+    quote generated: true, bind_quoted: [charon_config: config], location: :keep do
       mod_config = Internal.get_module_config(charon_config)
       repo = mod_config.repo
       client_schema_name = __MODULE__.Client
@@ -55,6 +56,7 @@ defmodule CharonOauth2 do
       authorization_context_name = __MODULE__.Authorizations
       grant_schema_name = __MODULE__.Grant
       grant_context_name = __MODULE__.Grants
+      test_seeds_name = __MODULE__.TestSeeds
       authorization_endpoint_name = __MODULE__.Plugs.AuthorizationEndpoint
       token_endpoint_name = __MODULE__.Plugs.TokenEndpoint
 
@@ -65,7 +67,8 @@ defmodule CharonOauth2 do
           client: client_schema_name,
           clients: client_context_name,
           authorization: authorization_schema_name,
-          authorizations: authorization_context_name
+          authorizations: authorization_context_name,
+          test_seeds: test_seeds_name
         }
         |> Macro.escape()
 
@@ -81,6 +84,7 @@ defmodule CharonOauth2 do
        - `#{grant_context_name}`
        - `#{authorization_endpoint_name}`
        - `#{token_endpoint_name}`
+       - `#{test_seeds_name}`
       """
 
       location = Macro.Env.location(__ENV__)
@@ -115,6 +119,13 @@ defmodule CharonOauth2 do
       Module.create(client_context_name, client_context, location)
       Module.create(grant_context_name, grant_context, location)
       Module.create(authorization_context_name, authorization_context, location)
+
+      ##############
+      # Test seeds #
+      ##############
+
+      test_seeds = TestSeeds.generate(schemas_and_contexts, charon_config)
+      Module.create(test_seeds_name, test_seeds, location)
 
       #########
       # Plugs #
