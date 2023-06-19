@@ -3,7 +3,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
   alias Charon.Models.Session
   alias MyApp.CharonOauth2.{Plugs.TokenEndpoint, Grants, Clients}
   import MyApp.TestUtils
-  import MyApp.CharonOauth2.Seeders
+  import MyApp.CharonOauth2.TestSeeds
   import Plug.Test
   import Plug.Conn
   import Charon.{Internal, Utils, TestHelpers}

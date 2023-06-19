@@ -27,6 +27,7 @@ CharonOauth2 implements recommendations from the [Oauth 2.1 draft spec](https://
       - [What are scopes?](#what-are-scopes)
       - [Enforcing scopes](#enforcing-scopes)
     - [Managing authorizations and clients](#managing-authorizations-and-clients)
+    - [Testing](#testing)
 
 <!-- /TOC -->
 
@@ -323,3 +324,8 @@ Also, you probably want to "pre-authorize" each user for your own client.
 ### Managing authorizations and clients
 
 To round off, you may wish to add the ability for users to register their own Oauth2 clients (be the owner of a third-party app) or manage their authorizations. These require simple CRUD operations on `MyApp.CharonOauth2.Clients` and `MyApp.CharonOauth2.Authorizations`, respectively. Implementing controllers or GraphQL resolvers for those operations is entrusted to the reader's capabilities ;)
+
+### Testing
+
+If you wish to write tests that involve CharonOauth2 models, you can use the utility functions in
+`MyApp.CharonOauth2.TestSeeds` to insert test seeds.

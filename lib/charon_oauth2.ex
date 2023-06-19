@@ -11,7 +11,7 @@ defmodule CharonOauth2 do
     Clients,
     Grant,
     Grants,
-    Seeders
+    TestSeeds
   }
 
   alias CharonOauth2.Internal.GenMod.Plugs.{AuthorizationEndpoint, TokenEndpoint}
@@ -56,7 +56,7 @@ defmodule CharonOauth2 do
       authorization_context_name = __MODULE__.Authorizations
       grant_schema_name = __MODULE__.Grant
       grant_context_name = __MODULE__.Grants
-      seeder_name = __MODULE__.Seeders
+      test_seeds_name = __MODULE__.TestSeeds
       authorization_endpoint_name = __MODULE__.Plugs.AuthorizationEndpoint
       token_endpoint_name = __MODULE__.Plugs.TokenEndpoint
 
@@ -68,7 +68,7 @@ defmodule CharonOauth2 do
           clients: client_context_name,
           authorization: authorization_schema_name,
           authorizations: authorization_context_name,
-          seeder: seeder_name
+          test_seeds: test_seeds_name
         }
         |> Macro.escape()
 
@@ -84,7 +84,7 @@ defmodule CharonOauth2 do
        - `#{grant_context_name}`
        - `#{authorization_endpoint_name}`
        - `#{token_endpoint_name}`
-       - `#{seeder_name}`
+       - `#{test_seeds_name}`
       """
 
       location = Macro.Env.location(__ENV__)
@@ -120,12 +120,12 @@ defmodule CharonOauth2 do
       Module.create(grant_context_name, grant_context, location)
       Module.create(authorization_context_name, authorization_context, location)
 
-      ###########
-      # Seeders #
-      ###########
+      ##############
+      # Test seeds #
+      ##############
 
-      seeder = Seeders.generate(schemas_and_contexts, charon_config)
-      Module.create(seeder_name, seeder, location)
+      test_seeds = TestSeeds.generate(schemas_and_contexts, charon_config)
+      Module.create(test_seeds_name, test_seeds, location)
 
       #########
       # Plugs #

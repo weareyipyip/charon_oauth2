@@ -2,7 +2,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
   use CharonOauth2.DataCase
   alias MyApp.CharonOauth2.{Authorizations, Grants, Plugs.AuthorizationEndpoint, Config}
   import MyApp.TestUtils
-  import MyApp.CharonOauth2.Seeders
+  import MyApp.CharonOauth2.TestSeeds
   import Plug.Test
   import Charon.TestHelpers
 

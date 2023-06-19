@@ -25,8 +25,8 @@ defmodule CharonOauth2.Config do
             grant_ttl: 10 * 60,
             resource_owner_id_column: :id,
             resource_owner_id_type: :bigserial,
+            test_seed_defaults: %{}
             verify_refresh_token: &CharonOauth2.verify_refresh_token/2,
-            seeder_overrides: %{client: %{}, authorization: %{}, grant: %{}}
           }
         }
       )
@@ -45,8 +45,8 @@ defmodule CharonOauth2.Config do
    - `:resource_owner_schema` (required, compile-time) the user schema module of your application.
    - `:resource_owner_table` (compile-time) the name of the table in resource owners are stored. Taken from `:resource_owner_schema` unless set.
    - `:scopes` (required, compile time) the scopes that are available to Oauth2 apps, application-wide.
+   - `:test_seed_defaults` override default values for test models used in `CharonOauth2.TestSeeds`.
    - `:verify_refresh_token` a function that you can use to verify an Oauth2 refresh token for the refresh token grant.
-  - `:seeder_overrides` the default values for test models used in `CharonOauth2.Seeders`.
 
   """
   @enforce_keys [:scopes, :repo, :resource_owner_schema]
@@ -65,7 +65,7 @@ defmodule CharonOauth2.Config do
     resource_owner_id_type: :bigserial,
     resource_owner_table: nil,
     verify_refresh_token: &CharonOauth2.verify_refresh_token/2,
-    seeder_overrides: %{}
+    test_seed_defaults: []
   ]
 
   @type t :: %__MODULE__{
@@ -82,11 +82,11 @@ defmodule CharonOauth2.Config do
           resource_owner_table: nil | String.t(),
           scopes: [String.t()],
           verify_refresh_token: (Plug.Conn.t(), Charon.Config.t() -> Plug.Conn.t()),
-          seeder_overrides: %{
-            optional(:client) => map(),
-            optional(:grant) => map(),
-            optional(:authorization) => map()
-          }
+          test_seed_defaults: [
+            client: keyword | map,
+            grant: keyword | map,
+            authorization: keyword | map
+          ]
         }
 
   @doc """
