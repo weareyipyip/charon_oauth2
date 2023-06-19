@@ -253,6 +253,30 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> assert_dont_cache()
                |> json_response(400)
     end
+
+    test "OPTIONS request", seeds do
+      assert %{status: 204} =
+               conn(:options, "/")
+               |> TokenEndpoint.call(seeds.opts)
+               |> assert_resp_headers(%{
+                 "access-control-allow-origin" => "*",
+                 "access-control-allow-methods" => "OPTIONS, POST",
+                 "access-control-allow-headers" => "Content-Type, Authorization, X-My-Header"
+               })
+    end
+
+    test "POST request headers returns correct access-control header", seeds do
+      conn(:post, "/", %{
+        grant_type: "authorization_code",
+        client_id: seeds.client.id,
+        client_secret: seeds.client.secret,
+        code: seeds.grant.code,
+        redirect_uri: seeds.grant.redirect_uri
+      })
+      |> TokenEndpoint.call(seeds.opts)
+      |> assert_resp_headers(%{"access-control-allow-origin" => "*"})
+      |> json_response(200)
+    end
   end
 
   describe "authorization_code flow" do
