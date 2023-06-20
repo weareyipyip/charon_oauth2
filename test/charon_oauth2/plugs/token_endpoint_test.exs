@@ -276,7 +276,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> assert_resp_headers(%{
                  "access-control-allow-origin" => "*",
                  "access-control-allow-methods" => "POST",
-                 "access-control-allow-headers" => "authorization"
+                 "access-control-allow-headers" => "authorization,content-type"
                })
     end
 
@@ -289,8 +289,11 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
         redirect_uri: seeds.grant.redirect_uri
       })
       |> TokenEndpoint.call(seeds.opts)
-      |> assert_resp_headers(%{"access-control-allow-origin" => "*"})
-      |> json_response(200)
+      |> assert_resp_headers(%{
+        "access-control-allow-origin" => "*",
+        "access-control-allow-methods" => "POST",
+        "access-control-allow-headers" => "authorization,content-type"
+      })
     end
   end
 
