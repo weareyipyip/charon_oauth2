@@ -64,8 +64,8 @@ defmodule CharonOauth2.Config do
     resource_owner_id_column: :id,
     resource_owner_id_type: :bigserial,
     resource_owner_table: nil,
-    verify_refresh_token: &CharonOauth2.verify_refresh_token/2,
-    test_seed_defaults: []
+    test_seed_defaults: [],
+    verify_refresh_token: &CharonOauth2.verify_refresh_token/2
   ]
 
   @type t :: %__MODULE__{
@@ -81,12 +81,12 @@ defmodule CharonOauth2.Config do
           resource_owner_schema: module(),
           resource_owner_table: nil | String.t(),
           scopes: [String.t()],
-          verify_refresh_token: (Plug.Conn.t(), Charon.Config.t() -> Plug.Conn.t()),
           test_seed_defaults: [
             client: keyword | map,
             grant: keyword | map,
             authorization: keyword | map
-          ]
+          ],
+          verify_refresh_token: (Plug.Conn.t(), Charon.Config.t() -> Plug.Conn.t())
         }
 
   @doc """

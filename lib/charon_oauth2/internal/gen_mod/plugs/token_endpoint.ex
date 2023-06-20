@@ -91,7 +91,8 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
 
       @impl true
       def call(conn = %{method: "POST", path_info: []}, opts) do
-        conn = Parsers.call(conn, @parser_opts)
+        conn = conn |> Parsers.call(@parser_opts) |> add_cors_headers()
+
         params = conn.body_params |> Map.put("auth_header", get_req_header(conn, "authorization"))
 
         with cs = %{valid?: true} <-
@@ -123,6 +124,12 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
                 json_error(conn, 400, "invalid_request", descr, opts)
             end
         end
+      end
+
+      # CORS preflight request for browser clients that use the authorization header
+      # to authenticate a confidential client (though they should use a public client)
+      def call(conn = %{method: "OPTIONS", path_info: []}, %{mod_conf: mod_conf}) do
+        conn |> add_cors_headers() |> send_resp(204, "")
       end
 
       def call(conn, _) do
@@ -273,6 +280,16 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         }
 
         json(conn, 200, resp_body, opts)
+      end
+
+      defp add_cors_headers(conn) do
+        merge_resp_headers(conn, %{
+          "access-control-allow-methods" => "POST",
+          # content-type does need need to be whitelisted, technically, because
+          # application/x-www-form-urlencoded counts as a "simple" request
+          "access-control-allow-headers" => "authorization,content-type",
+          "access-control-allow-origin" => "*"
+        })
       end
     end
   end
