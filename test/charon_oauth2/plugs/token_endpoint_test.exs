@@ -11,25 +11,17 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
   @config MyApp.CharonOauth2.Config.get()
 
   setup do
+    user = insert_test_user()
+
     client =
-      insert_test_client!(insert_test_user().id,
+      insert_test_client!(
+        owner_id: user.id,
         grant_types: ~w(authorization_code refresh_token),
         scope: ~w(read write)
       )
 
-    user = insert_test_user()
-
-    authorization =
-      insert_test_authorization!(insert_test_user().id,
-        client_id: client.id,
-        resource_owner_id: user.id
-      )
-
-    grant =
-      insert_test_grant!(insert_test_user().id,
-        authorization_id: authorization.id,
-        resource_owner_id: user.id
-      )
+    authorization = insert_test_authorization!(client_id: client.id, resource_owner_id: user.id)
+    grant = insert_test_grant!(authorization_id: authorization.id, resource_owner_id: user.id)
 
     opts = TokenEndpoint.init(config: @config)
     [client: client, opts: opts, user: user, authorization: authorization, grant: grant]
@@ -343,7 +335,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
     end
 
     test "client_id must match the code's grant", seeds do
-      other_client = insert_test_client!(insert_test_user().id)
+      other_client = insert_test_client!(owner_id: insert_test_user().id)
 
       assert %{
                "error" => "invalid_grant",

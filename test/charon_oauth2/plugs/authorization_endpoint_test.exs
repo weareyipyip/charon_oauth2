@@ -9,9 +9,9 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
   @config Config.get()
 
   setup do
-    client = insert_test_client!(insert_test_user().id)
-    opts = AuthorizationEndpoint.init(config: @config)
     user = insert_test_user()
+    client = insert_test_client!(owner_id: user.id)
+    opts = AuthorizationEndpoint.init(config: @config)
     [client: client, opts: opts, user: user]
   end
 
@@ -89,7 +89,11 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
     end
 
     test "redirect_uri required for client with multiple redirect_uris", seeds do
-      client = insert_test_client!(insert_test_user().id, redirect_uris: ~w(https://a https://b))
+      client =
+        insert_test_client!(
+          owner_id: insert_test_user().id,
+          redirect_uris: ~w(https://a https://b)
+        )
 
       assert %{"redirect_uri" => ["can't be blank"]} ==
                conn(:post, "/", %{
@@ -124,7 +128,8 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
     end
 
     test "response_type must be configured for client", seeds do
-      client = insert_test_client!(insert_test_user().id, grant_types: ~w(refresh_token))
+      client =
+        insert_test_client!(owner_id: insert_test_user().id, grant_types: ~w(refresh_token))
 
       assert %{
                "error" => "unauthorized_client",
@@ -354,7 +359,8 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
     end
 
     test "scope is not required for an existing authorization", seeds do
-      insert_test_authorization(insert_test_user().id,
+      insert_test_authorization(
+        resource_owner_id: insert_test_user().id,
         client_id: seeds.client.id,
         resource_owner_id: seeds.user.id
       )
@@ -375,10 +381,9 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
     end
 
     test "existing authorization's scope is expanded to request scope", seeds do
-      client = insert_test_client!(insert_test_user().id, scope: ~w(read write))
+      client = insert_test_client!(owner_id: insert_test_user().id, scope: ~w(read write))
 
-      insert_test_authorization(
-        insert_test_user().id,
+      insert_test_authorization!(
         client_id: client.id,
         resource_owner_id: seeds.user.id,
         scope: ~w(read)
@@ -408,7 +413,11 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
       cid = seeds.client.id
 
       auth =
-        insert_test_authorization!(insert_test_user().id, client_id: cid, resource_owner_id: uid)
+        insert_test_authorization!(
+          resource_owner_id: insert_test_user().id,
+          client_id: cid,
+          resource_owner_id: uid
+        )
 
       aid = auth.id
       [redir_uri] = seeds.client.redirect_uris
@@ -437,7 +446,11 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
     end
 
     test "request redirect_uri is set in grant and used for redir", seeds do
-      client = insert_test_client!(insert_test_user().id, redirect_uris: ~w(https://a https://b))
+      client =
+        insert_test_client!(
+          owner_id: insert_test_user().id,
+          redirect_uris: ~w(https://a https://b)
+        )
 
       assert %{"code" => code, "state" => "teststate"} =
                conn(:post, "/", %{
@@ -485,7 +498,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
       config = override_opt_mod_conf(@config, CharonOauth2, enforce_pkce: :public)
       opts = AuthorizationEndpoint.init(config: config)
 
-      public_client = insert_test_client!(insert_test_user().id, client_type: "public")
+      public_client = insert_test_client!(owner_id: insert_test_user().id, client_type: "public")
 
       assert %{
                "state" => "teststate",
@@ -524,7 +537,7 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
       config = override_opt_mod_conf(@config, CharonOauth2, enforce_pkce: :no)
       opts = AuthorizationEndpoint.init(config: config)
 
-      public_client = insert_test_client!(insert_test_user().id, client_type: "public")
+      public_client = insert_test_client!(owner_id: insert_test_user().id, client_type: "public")
 
       assert %{"code" => _} =
                conn(:post, "/", %{

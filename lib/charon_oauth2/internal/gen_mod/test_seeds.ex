@@ -49,13 +49,10 @@ defmodule CharonOauth2.Internal.GenMod.TestSeeds do
       #{inspect(@client_defaults, pretty: true)}
       ```
       """
-      @spec insert_test_client(any(), keyword()) ::
+      @spec insert_test_client(keyword() | map()) ::
               {:ok, @client_schema.t()} | {:error, Changeset.t()}
-      def insert_test_client(owner_id, overrides \\ []) do
-        overrides
-        |> Enum.into(@client_defaults)
-        |> Map.put_new(:owner_id, owner_id)
-        |> @client_context.insert()
+      def insert_test_client(overrides \\ []) do
+        overrides |> Enum.into(@client_defaults) |> @client_context.insert()
       end
 
       @doc """
@@ -67,9 +64,9 @@ defmodule CharonOauth2.Internal.GenMod.TestSeeds do
       #{inspect(@client_defaults, pretty: true)}
       ```
       """
-      @spec insert_test_client!(any(), keyword()) :: @client_schema.t()
-      def insert_test_client!(owner_id, overrides \\ []) do
-        insert_test_client(owner_id, overrides) |> ok_or_raise("oauth2_client")
+      @spec insert_test_client!(keyword() | map) :: @client_schema.t()
+      def insert_test_client!(overrides \\ []) do
+        overrides |> insert_test_client() |> ok_or_raise("oauth2_client")
       end
 
       @authorization_defaults Enum.into(
@@ -86,13 +83,29 @@ defmodule CharonOauth2.Internal.GenMod.TestSeeds do
       #{inspect(@authorization_defaults, pretty: true)}
       ```
       """
-      @spec insert_test_authorization(any(), keyword()) ::
+      @spec insert_test_authorization(keyword() | map) ::
               {:ok, @authorization_schema.t()} | {:error, Changeset.t()}
-      def insert_test_authorization(resource_owner_id, overrides \\ []) do
+      def insert_test_authorization(overrides \\ []) do
         overrides
         |> Enum.into(@authorization_defaults)
-        |> Map.put_new(:resource_owner_id, resource_owner_id)
-        |> Map.put_new_lazy(:client_id, fn -> insert_test_client!(resource_owner_id).id end)
+        |> case do
+          params = %{client_id: _, resource_owner_id: _} ->
+            params
+
+          params = %{client_id: client_id} ->
+            if client = @client_context.get_by(id: client_id) do
+              Map.put(params, :resource_owner_id, client.owner_id)
+            else
+              params
+            end
+
+          params = %{resource_owner_id: uid} ->
+            client = insert_test_client!(owner_id: uid).id
+            Map.put(params, :client_id, client)
+
+          params ->
+            params
+        end
         |> @authorization_context.insert()
       end
 
@@ -105,10 +118,9 @@ defmodule CharonOauth2.Internal.GenMod.TestSeeds do
       #{inspect(@authorization_defaults, pretty: true)}
       ```
       """
-      @spec insert_test_authorization!(any(), keyword()) :: @authorization_schema.t()
-      def insert_test_authorization!(resource_owner_id, overrides \\ []) do
-        insert_test_authorization(resource_owner_id, overrides)
-        |> ok_or_raise("oauth2_authorization")
+      @spec insert_test_authorization!(keyword() | map) :: @authorization_schema.t()
+      def insert_test_authorization!(overrides \\ []) do
+        overrides |> insert_test_authorization() |> ok_or_raise("oauth2_authorization")
       end
 
       @grant_defaults Enum.into(@default_overrides[:grant] || [], %{
@@ -125,15 +137,29 @@ defmodule CharonOauth2.Internal.GenMod.TestSeeds do
       #{inspect(@grant_defaults, pretty: true)}
       ```
       """
-      @spec insert_test_grant(any(), keyword()) ::
+      @spec insert_test_grant(keyword() | map) ::
               {:ok, @grant_schema.t()} | {:error, Changeset.t()}
-      def insert_test_grant(resource_owner_id, overrides \\ []) do
+      def insert_test_grant(overrides \\ []) do
         overrides
         |> Enum.into(@grant_defaults)
-        |> Map.put_new_lazy(:authorization_id, fn ->
-          insert_test_authorization!(resource_owner_id).id
-        end)
-        |> put_new_resource_owner(@authorization_context)
+        |> case do
+          params = %{authorization_id: _, resource_owner_id: _} ->
+            params
+
+          params = %{authorization_id: auth_id} ->
+            if auth = @authorization_context.get_by(id: auth_id) do
+              Map.put(params, :resource_owner_id, auth.resource_owner_id)
+            else
+              params
+            end
+
+          params = %{resource_owner_id: uid} ->
+            authorization = insert_test_authorization!(resource_owner_id: uid).id
+            Map.put(params, :authorization_id, authorization)
+
+          params ->
+            params
+        end
         |> @grant_context.insert()
       end
 
@@ -146,30 +172,14 @@ defmodule CharonOauth2.Internal.GenMod.TestSeeds do
       #{inspect(@grant_defaults, pretty: true)}
       ```
       """
-      @spec insert_test_grant!(any(), keyword()) :: @grant_schema.t()
-      def insert_test_grant!(resource_owner_id, overrides \\ []) do
-        insert_test_grant(resource_owner_id, overrides) |> ok_or_raise("oauth2_grant")
+      @spec insert_test_grant!(keyword() | map) :: @grant_schema.t()
+      def insert_test_grant!(overrides \\ []) do
+        overrides |> insert_test_grant() |> ok_or_raise("oauth2_grant")
       end
 
       ###########
       # PRIVATE #
       ###########
-
-      defp put_new_resource_owner(%{resource_owner_id: _} = grant, _auth_context), do: grant
-
-      defp put_new_resource_owner(%{authorization_id: auth_id} = grant, auth_context) do
-        owner_id =
-          if auth = auth_context.get_by(id: auth_id) do
-            auth.resource_owner_id
-          else
-            -1
-          end
-
-        Map.put(grant, :resource_owner_id, owner_id)
-      end
-
-      defp put_new_resource_owner(_, _),
-        do: raise("Grant must contain either :resource_owner_id or :authorization_id")
 
       defp ok_or_raise({:ok, entity}, _entity_name), do: entity
 
