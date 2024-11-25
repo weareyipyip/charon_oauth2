@@ -4,19 +4,23 @@
     {
       "label": "Start containers",
       "type": "shell",
-      "command": "ELIXIR_VERSION=1.13 docker-compose up -d"
+      "command": "ELIXIR_VERSION=1.13 docker compose up -d"
     },
     {
       "label": "Shell",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
-      "command": "docker-compose exec elixir /bin/sh"
+      "command": "docker compose exec elixir /bin/sh"
     },
     {
       "label": "IEx",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
-      "command": "docker-compose exec elixir iex -S mix",
+      "command": "docker compose exec elixir iex -S mix",
       "group": {
         "kind": "build",
         "isDefault": true
@@ -24,9 +28,11 @@
     },
     {
       "label": "Test",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
-      "command": "docker-compose exec elixir mix test",
+      "command": "docker compose exec elixir mix test",
       "group": {
         "kind": "test",
         "isDefault": true
@@ -34,28 +40,36 @@
     },
     {
       "label": "Test watch",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
-      "command": "docker-compose exec elixir mix test.watch",
+      "command": "docker compose exec elixir mix test.watch",
       "group": "test"
     },
     {
       "label": "Install dependencies",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
-      "command": "docker-compose exec elixir mix do local.hex --force, local.rebar --force, deps.get"
+      "command": "docker compose exec elixir mix do local.hex --force, local.rebar --force, deps.get"
     },
     {
       "label": "Update dependencies",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
-      "command": "docker-compose exec elixir mix deps.update --all"
+      "command": "docker compose exec elixir mix deps.update --all"
     },
     {
       "label": "Test file",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
-      "command": "docker-compose exec elixir mix test ${relativeFile}",
+      "command": "docker compose exec elixir mix test ${relativeFile}",
       "group": "test",
       "runOptions": {
         "reevaluateOnRerun": false
@@ -63,19 +77,23 @@
     },
     {
       "label": "Test line",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
-      "command": "docker-compose exec elixir mix test ${relativeFile}:${lineNumber}",
+      "command": "docker compose exec elixir mix test ${relativeFile}:${lineNumber}",
       "group": "test",
       "runOptions": {
         "reevaluateOnRerun": false
       }
     },
     {
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "label": "Reset DB",
       "type": "shell",
-      "command": "docker-compose exec -e MIX_ENV=test elixir mix do ecto.drop, ecto.create, ecto.migrate && docker-compose exec elixir mix do ecto.drop, ecto.create, ecto.migrate"
+      "command": "docker compose exec -e MIX_ENV=test elixir mix do ecto.drop, ecto.create, ecto.migrate && docker compose exec elixir mix do ecto.drop, ecto.create, ecto.migrate"
     }
   ]
 }

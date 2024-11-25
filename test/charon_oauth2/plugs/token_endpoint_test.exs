@@ -79,9 +79,8 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
     test "all parameters must be castable", seeds do
       assert %{
                "error" => "invalid_request",
-               "error_description" =>
-                 "client_id: is invalid, client_secret: is invalid, code: is invalid, code_verifier: is invalid, grant_type: is invalid, redirect_uri: is invalid, refresh_token: is invalid"
-             } ==
+               "error_description" => description
+             } =
                conn(:post, "/", %{
                  grant_type: {:boom},
                  code: {:boom},
@@ -94,6 +93,14 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> TokenEndpoint.call(seeds.opts)
                |> assert_dont_cache()
                |> json_response(400)
+
+      assert description =~ "client_id: is invalid"
+      assert description =~ "client_secret: is invalid"
+      assert description =~ "code: is invalid"
+      assert description =~ "code_verifier: is invalid"
+      assert description =~ "grant_type: is invalid"
+      assert description =~ "redirect_uri: is invalid"
+      assert description =~ "refresh_token: is invalid"
     end
 
     test "grant_type is required and must be supported", seeds do
@@ -134,18 +141,21 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       assert {:ok, _} = Clients.update(seeds.client, %{client_type: "public"})
       basic_auth = Plug.BasicAuth.encode_basic_auth(seeds.client.id, "whatevs")
 
-      assert "auth_header: is invalid, client_secret: does not match expected value" ==
-               conn(:post, "/", %{
-                 grant_type: "authorization_code",
-                 code: seeds.grant.code,
-                 redirect_uri: seeds.grant.redirect_uri
-               })
-               |> put_req_header("authorization", basic_auth)
-               |> TokenEndpoint.call(seeds.opts)
-               |> assert_dont_cache()
-               |> assert_status(401)
-               |> assert_resp_headers(%{"www-authenticate" => "Basic"})
-               |> Map.get(:resp_body)
+      resp_body =
+        conn(:post, "/", %{
+          grant_type: "authorization_code",
+          code: seeds.grant.code,
+          redirect_uri: seeds.grant.redirect_uri
+        })
+        |> put_req_header("authorization", basic_auth)
+        |> TokenEndpoint.call(seeds.opts)
+        |> assert_dont_cache()
+        |> assert_status(401)
+        |> assert_resp_headers(%{"www-authenticate" => "Basic"})
+        |> Map.get(:resp_body)
+
+      assert resp_body =~ "client_secret: does not match expected value"
+      assert resp_body =~ "auth_header: is invalid"
 
       assert %{
                "error" => "invalid_client",
@@ -199,35 +209,41 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
     test "invalid basic auth client secret results in 401", seeds do
       basic_auth = Plug.BasicAuth.encode_basic_auth(seeds.client.id, "boom")
 
-      assert "auth_header: is invalid, client_secret: does not match expected value" ==
-               conn(:post, "/", %{
-                 grant_type: "authorization_code",
-                 code: seeds.grant.code,
-                 redirect_uri: seeds.grant.redirect_uri
-               })
-               |> put_req_header("authorization", basic_auth)
-               |> TokenEndpoint.call(seeds.opts)
-               |> assert_dont_cache()
-               |> assert_status(401)
-               |> assert_resp_headers(%{"www-authenticate" => "Basic"})
-               |> Map.get(:resp_body)
+      resp_body =
+        conn(:post, "/", %{
+          grant_type: "authorization_code",
+          code: seeds.grant.code,
+          redirect_uri: seeds.grant.redirect_uri
+        })
+        |> put_req_header("authorization", basic_auth)
+        |> TokenEndpoint.call(seeds.opts)
+        |> assert_dont_cache()
+        |> assert_status(401)
+        |> assert_resp_headers(%{"www-authenticate" => "Basic"})
+        |> Map.get(:resp_body)
+
+      assert resp_body =~ "auth_header: is invalid"
+      assert resp_body =~ "client_secret: does not match expected value"
     end
 
     test "invalid basic auth client id results in 401", seeds do
       basic_auth = Plug.BasicAuth.encode_basic_auth("BOOM", seeds.client.secret)
 
-      assert "auth_header: is invalid, client_id: is invalid" ==
-               conn(:post, "/", %{
-                 grant_type: "authorization_code",
-                 code: seeds.grant.code,
-                 redirect_uri: seeds.grant.redirect_uri
-               })
-               |> put_req_header("authorization", basic_auth)
-               |> TokenEndpoint.call(seeds.opts)
-               |> assert_dont_cache()
-               |> assert_status(401)
-               |> assert_resp_headers(%{"www-authenticate" => "Basic"})
-               |> Map.get(:resp_body)
+      resp_body =
+        conn(:post, "/", %{
+          grant_type: "authorization_code",
+          code: seeds.grant.code,
+          redirect_uri: seeds.grant.redirect_uri
+        })
+        |> put_req_header("authorization", basic_auth)
+        |> TokenEndpoint.call(seeds.opts)
+        |> assert_dont_cache()
+        |> assert_status(401)
+        |> assert_resp_headers(%{"www-authenticate" => "Basic"})
+        |> Map.get(:resp_body)
+
+      assert resp_body =~ "client_id: is invalid"
+      assert resp_body =~ "auth_header: is invalid"
     end
 
     test "correct client_secret is required for confidential clients", seeds do

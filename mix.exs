@@ -46,7 +46,7 @@ defmodule CharonOauth2.MixProject do
       {:postgrex, ">= 0.0.0", only: [:dev, :test]},
       {:jason, "~> 1.4", only: [:dev, :test]},
       {:mix_test_watch, "~> 1.0", only: [:dev], runtime: false},
-      {:dialyxir, "~> 1.3.0", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.3", only: [:dev], runtime: false}
     ]
   end
 
