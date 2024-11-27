@@ -4,11 +4,13 @@
     {
       "label": "Start containers",
       "type": "shell",
-      "command": "docker-compose up -d redis"
+      "command": "docker compose up -d redis"
     },
     {
       "label": "IEx",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
       "command": "iex -S mix",
       "group": {
@@ -18,7 +20,9 @@
     },
     {
       "label": "Test",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
       "command": "mix test",
       "group": {
@@ -28,26 +32,34 @@
     },
     {
       "label": "Test watch",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
       "command": "mix test.watch",
       "group": "test"
     },
     {
       "label": "Install dependencies",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
       "command": "mix do local.hex --force, local.rebar --force, deps.get"
     },
     {
       "label": "Update dependencies",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
       "command": "mix deps.update --all"
     },
     {
       "label": "Test file",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
       "command": "mix test ${relativeFile}",
       "group": "test",
@@ -57,7 +69,9 @@
     },
     {
       "label": "Test line",
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "type": "shell",
       "command": "mix test ${relativeFile}:${lineNumber}",
       "group": "test",
@@ -66,7 +80,9 @@
       }
     },
     {
-      "dependsOn": ["Start containers"],
+      "dependsOn": [
+        "Start containers"
+      ],
       "label": "Reset DB",
       "type": "shell",
       "command": "MIX_ENV=test mix do ecto.drop, ecto.create, ecto.migrate && mix do ecto.drop, ecto.create, ecto.migrate"

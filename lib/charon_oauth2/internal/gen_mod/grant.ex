@@ -73,7 +73,9 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
           :authorization_id,
           :resource_owner_id
         ])
-        |> validate_inclusion(:type, @types, message: "must be one of: #{Enum.join(@types, ", ")}")
+        |> validate_inclusion(:type, @types,
+          message: "must be one of: #{Enum.join(@types, ", ")}"
+        )
         |> prepare_changes(fn cs = %{data: data} ->
           type = get_field(cs, :type)
           auth_id = get_field(cs, :authorization_id)
@@ -134,7 +136,9 @@ defmodule CharonOauth2.Internal.GenMod.Grant do
             :authorization_client ->
               query
               |> resolve_binding(:authorization)
-              |> join(:left, [authorization: a], c in assoc(a, :client), as: :authorization_client)
+              |> join(:left, [authorization: a], c in assoc(a, :client),
+                as: :authorization_client
+              )
 
             :authorization_resource_owner ->
               query

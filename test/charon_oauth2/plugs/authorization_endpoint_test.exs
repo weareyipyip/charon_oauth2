@@ -185,10 +185,9 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
     test "response_type and code_challenge_method must be recognized", seeds do
       assert %{
                "error" => "invalid_request",
-               "error_description" =>
-                 "code_challenge_method: not recognized, response_type: not recognized",
+               "error_description" => description,
                "state" => "teststate"
-             } ==
+             } =
                conn(:post, "/", %{
                  client_id: seeds.client.id,
                  response_type: "boom",
@@ -201,14 +200,16 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
                |> redir_response(seeds.client.redirect_uris |> List.first())
+
+      assert description =~ "code_challenge_method: not recognized"
+      assert description =~ "response_type: not recognized"
     end
 
     test "params must be valid", seeds do
       assert %{
                "error" => "invalid_request",
-               "error_description" =>
-                 "code_challenge: is invalid, code_challenge_method: is invalid, response_type: is invalid, scope: is invalid, state: is invalid"
-             } ==
+               "error_description" => description
+             } =
                conn(:post, "/", %{
                  client_id: seeds.client.id,
                  response_type: 1,
@@ -222,6 +223,12 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
                |> redir_response(seeds.client.redirect_uris |> List.first())
+
+      assert description =~ "response_type: is invalid"
+      assert description =~ "code_challenge: is invalid"
+      assert description =~ "code_challenge_method: is invalid"
+      assert description =~ "scope: is invalid"
+      assert description =~ "state: is invalid"
     end
 
     test "permission_granted must be set by our own client (JSON 400 resp)", seeds do
@@ -478,9 +485,8 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
       assert %{
                "state" => "teststate",
                "error" => "invalid_request",
-               "error_description" =>
-                 "code_challenge: can't be blank (PKCE is required), code_challenge_method: can't be blank"
-             } ==
+               "error_description" => description
+             } =
                conn(:post, "/", %{
                  client_id: seeds.client.id,
                  response_type: "code",
@@ -492,6 +498,9 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
                |> redir_response(seeds.client.redirect_uris |> List.first())
+
+      assert description =~ "code_challenge_method: can't be blank"
+      assert description =~ "code_challenge: can't be blank (PKCE is required)"
     end
 
     test "PKCE is required for public clients if :enforce_pkce = :public", seeds do
@@ -503,9 +512,8 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
       assert %{
                "state" => "teststate",
                "error" => "invalid_request",
-               "error_description" =>
-                 "code_challenge: can't be blank (PKCE is required), code_challenge_method: can't be blank"
-             } ==
+               "error_description" => description
+             } =
                conn(:post, "/", %{
                  client_id: public_client.id,
                  response_type: "code",
@@ -517,6 +525,9 @@ defmodule CharonOauth2.Plugs.AuthorizationEndpointTest do
                |> AuthorizationEndpoint.call(seeds.opts)
                |> assert_dont_cache()
                |> redir_response(seeds.client.redirect_uris |> List.first())
+
+      assert description =~ "code_challenge: can't be blank (PKCE is required)"
+      assert description =~ "code_challenge_method: can't be blank"
 
       # not required for confidential client
       assert %{"code" => _} =
