@@ -273,7 +273,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           session_type: :oauth2,
           access_claim_overrides: %{"cid" => client.id, "scope" => scopes},
           refresh_claim_overrides: nil,
-          subject_override: client.id
+          user_id: client.id
         ]
 
         [conn, opts.config, base_upsert_opts ++ upsert_opts]

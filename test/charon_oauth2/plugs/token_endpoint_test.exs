@@ -861,4 +861,31 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> json_response(200)
     end
   end
+
+  describe "client_credentials flow" do
+    setup do
+      owner = insert_test_user()
+      client = insert_test_client!(
+        grant_types: ~w(client_credentials),
+        scope: ~w(read write),
+        owner_id: owner.id
+      )
+      opts = TokenEndpoint.init(config: @config)
+      %{owner: owner, client: client, opts: opts}
+    end
+
+
+    test "valid request returns valid token", %{client: client, opts: opts} do
+      basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
+
+      conn(:post, "/", %{
+        grant_type: "client_credentials",
+      })
+      |> put_req_header("authorization", basic_auth)
+      |> TokenEndpoint.call(opts)
+      |> assert_dont_cache()
+      |> json_response(200)
+    end
+
+  end
 end
