@@ -145,6 +145,8 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
 
             error_map
             |> case do
+              %{scope: ["user authorized " <> _]} ->
+                json_error(conn, 400, "invalid_scope", descr, opts)
               %{grant_type: ["unsupported by client"]} ->
                     json_error(conn, 400, "unauthorized_client", descr, opts)
               other ->
