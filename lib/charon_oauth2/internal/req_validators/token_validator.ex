@@ -124,6 +124,7 @@ defmodule CharonOauth2.Internal.TokenValidator do
     |> validate_client_grant_type(cs.changes.client)
     |> validate_scope(%{scope: cs.changes.client.scope})
   end
+
   @doc """
   For the refresh token flow, we verify that a token is present and that the client
   supports the grant type.

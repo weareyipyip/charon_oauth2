@@ -865,21 +865,23 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
   describe "client_credentials flow" do
     setup do
       owner = insert_test_user()
-      client = insert_test_client!(
-        grant_types: ~w(client_credentials),
-        scope: ~w(read write),
-        owner_id: owner.id
-      )
+
+      client =
+        insert_test_client!(
+          grant_types: ~w(client_credentials),
+          scope: ~w(read write),
+          owner_id: owner.id
+        )
+
       opts = TokenEndpoint.init(config: @config)
       %{owner: owner, client: client, opts: opts}
     end
-
 
     test "valid request returns valid token", %{client: client, opts: opts} do
       basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
 
       conn(:post, "/", %{
-        grant_type: "client_credentials",
+        grant_type: "client_credentials"
       })
       |> put_req_header("authorization", basic_auth)
       |> TokenEndpoint.call(opts)
@@ -888,9 +890,8 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
     end
 
     test "requires auth", %{opts: opts} do
-
       conn(:post, "/", %{
-        grant_type: "client_credentials",
+        grant_type: "client_credentials"
       })
       |> TokenEndpoint.call(opts)
       |> assert_dont_cache()
@@ -899,6 +900,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
 
     test "rejects unkown scopes", %{client: client, opts: opts} do
       basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
+
       body =
         conn(:post, "/", %{
           grant_type: "client_credentials",
@@ -912,8 +914,9 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       assert %{"error_description" => "scope: user authorized read, write"} = body
     end
 
-    test "allows limiting scopes",  %{client: client, opts: opts} do
+    test "allows limiting scopes", %{client: client, opts: opts} do
       basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
+
       body =
         conn(:post, "/", %{
           grant_type: "client_credentials",
@@ -928,25 +931,28 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
     end
 
     test "is not supported for clients without the grant", %{owner: owner, opts: opts} do
-      client = insert_test_client!(
-        owner_id: owner.id,
-        grant_types: ~w(authorization_code refresh_token),
-        scope: ~w(read write)
-      )
+      client =
+        insert_test_client!(
+          owner_id: owner.id,
+          grant_types: ~w(authorization_code refresh_token),
+          scope: ~w(read write)
+        )
 
       basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
 
       body =
         conn(:post, "/", %{
-          grant_type: "client_credentials",
+          grant_type: "client_credentials"
         })
         |> put_req_header("authorization", basic_auth)
         |> TokenEndpoint.call(opts)
         |> assert_dont_cache()
         |> json_response(400)
 
-      assert %{"error" => "unauthorized_client", "error_description" => "grant_type: unsupported by client"} = body
+      assert %{
+               "error" => "unauthorized_client",
+               "error_description" => "grant_type: unsupported by client"
+             } = body
     end
-
   end
 end

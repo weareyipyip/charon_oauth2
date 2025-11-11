@@ -129,7 +129,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
       ###########
 
       defp process_grant(cs = %{changes: %{grant_type: "client_credentials"}}, conn, opts) do
-        with %{valid?: true } <- Validate.validate_client_credentials(cs) do
+        with %{valid?: true} <- Validate.validate_client_credentials(cs) do
           scopes = Map.get(cs.changes, :scope, cs.changes.client.scope)
 
           conn
@@ -147,13 +147,13 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
             |> case do
               %{scope: ["user authorized " <> _]} ->
                 json_error(conn, 400, "invalid_scope", descr, opts)
+
               %{grant_type: ["unsupported by client"]} ->
-                    json_error(conn, 400, "unauthorized_client", descr, opts)
+                json_error(conn, 400, "unauthorized_client", descr, opts)
+
               other ->
                 json_error(conn, 400, "invalid_request", descr, opts)
-
             end
-
         end
       end
 
@@ -295,7 +295,6 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
 
         json(conn, 200, resp_body, opts)
       end
-
 
       defp upsert_session(conn, authorization, scopes, opts, upsert_opts \\ []) do
         %{client_id: cid} = authorization

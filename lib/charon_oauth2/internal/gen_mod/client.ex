@@ -97,14 +97,22 @@ defmodule CharonOauth2.Internal.GenMod.Client do
           "must be subset of #{Enum.join(@app_scopes, ", ")}"
         )
         |> then(fn cs ->
-            grant_types = Ecto.Changeset.get_field(cs, :grant_types, :ordsets.new()) || :ordsets.new()
-            client_type = Ecto.Changeset.get_field(cs, :client_type, nil)
+          grant_types =
+            Ecto.Changeset.get_field(cs, :grant_types, :ordsets.new()) || :ordsets.new()
 
-            case {client_type, Enum.member?(grant_types, "client_credentials")} do
-              {"public", true} ->
-                Ecto.Changeset.add_error(cs, :client_type, "Can not be public for client_credential clients")
-              _ -> cs
-            end
+          client_type = Ecto.Changeset.get_field(cs, :client_type, nil)
+
+          case {client_type, Enum.member?(grant_types, "client_credentials")} do
+            {"public", true} ->
+              Ecto.Changeset.add_error(
+                cs,
+                :client_type,
+                "Can not be public for client_credential clients"
+              )
+
+            _ ->
+              cs
+          end
         end)
         |> prepare_changes(fn
           cs = %{data: %{id: id, scope: current_scopes}, changes: %{scope: scopes}}
