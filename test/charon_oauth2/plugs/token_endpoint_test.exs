@@ -887,5 +887,66 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       |> json_response(200)
     end
 
+    test "requires auth", %{client: client, opts: opts} do
+
+      conn(:post, "/", %{
+        grant_type: "client_credentials",
+      })
+      |> TokenEndpoint.call(opts)
+      |> assert_dont_cache()
+      |> json_response(400)
+    end
+
+    test "rejects unkown scopes", %{client: client, opts: opts} do
+      basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
+      body =
+        conn(:post, "/", %{
+          grant_type: "client_credentials",
+          scope: "acme"
+        })
+        |> put_req_header("authorization", basic_auth)
+        |> TokenEndpoint.call(opts)
+        |> assert_dont_cache()
+        |> json_response(400)
+
+      assert %{"error_description" => "scope: user authorized read, write"} = body
+    end
+
+    test "allows limiting scopes",  %{client: client, opts: opts} do
+      basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
+      body =
+        conn(:post, "/", %{
+          grant_type: "client_credentials",
+          scope: "read"
+        })
+        |> put_req_header("authorization", basic_auth)
+        |> TokenEndpoint.call(opts)
+        |> assert_dont_cache()
+        |> json_response(200)
+
+      assert %{"scope" => "read"} = body
+    end
+
+    test "is not supported for clients without the grant", %{owner: owner, opts: opts} do
+      client = insert_test_client!(
+        owner_id: owner.id,
+        grant_types: ~w(authorization_code refresh_token),
+        scope: ~w(read write)
+      )
+
+      basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
+
+      body =
+        conn(:post, "/", %{
+          grant_type: "client_credentials",
+        })
+        |> put_req_header("authorization", basic_auth)
+        |> TokenEndpoint.call(opts)
+        |> assert_dont_cache()
+        |> json_response(400)
+
+      assert %{"error" => "unauthorized_client", "error_description" => "grant_type: unsupported by client"} = body
+    end
+
   end
 end
