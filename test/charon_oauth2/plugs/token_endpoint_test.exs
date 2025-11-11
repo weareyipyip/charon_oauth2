@@ -887,7 +887,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       |> json_response(200)
     end
 
-    test "requires auth", %{client: client, opts: opts} do
+    test "requires auth", %{opts: opts} do
 
       conn(:post, "/", %{
         grant_type: "client_credentials",
