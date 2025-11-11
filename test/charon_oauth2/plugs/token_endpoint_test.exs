@@ -115,7 +115,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       assert %{
                "error" => "unsupported_grant_type",
                "error_description" =>
-                 "grant_type: server supports [authorization_code, refresh_token]"
+                 "grant_type: server supports [authorization_code, refresh_token, client_credentials]"
              } ==
                conn(:post, "/", %{grant_type: "test"})
                |> TokenEndpoint.call(seeds.opts)

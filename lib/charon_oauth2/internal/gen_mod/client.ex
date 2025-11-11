@@ -42,7 +42,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       @app_scopes @mod_config.scopes |> :ordsets.from_list()
 
       @client_types ~w(confidential public)
-      @grant_types ~w(authorization_code refresh_token) |> :ordsets.from_list()
+      @grant_types ~w(authorization_code refresh_token client_credentials) |> :ordsets.from_list()
       @secret_bytesize 48
       @autogen_secret {Crypto, :random_url_encoded, [@secret_bytesize]}
 

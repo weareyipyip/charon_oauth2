@@ -128,6 +128,33 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
       # Private #
       ###########
 
+      defp process_grant(cs = %{changes: %{grant_type: "client_credentials"}}, conn, opts) do
+        with %{valid?: true } <- Validate.validate_client_credentials(cs) do
+          scopes = Map.get(cs.changes, :scope, cs.changes.client.scope)
+
+          conn
+          |> upsert_session_client_credentials(cs.changes.client, scopes, opts)
+          |> send_token_response_client_credentials(scopes, now(), opts)
+        else
+          nil ->
+            json_error(conn, 400, "invalid_grant", "authorization: not found", opts)
+
+          invalid_cs ->
+            error_map = changeset_errors_to_map(invalid_cs)
+            descr = error_map |> cs_error_map_to_string()
+
+            error_map
+            |> case do
+              %{grant_type: ["unsupported by client"]} ->
+                    json_error(conn, 400, "unauthorized_client", descr, opts)
+              other ->
+                json_error(conn, 400, "invalid_request", descr, opts)
+
+            end
+
+        end
+      end
+
       defp process_grant(cs = %{changes: %{grant_type: "authorization_code"}}, conn, opts) do
         with cs = %{valid?: true, changes: %{code: code}} <-
                Validate.authorization_code_flow_step_1(cs),
@@ -239,6 +266,34 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           payload = Utils.get_bearer_token_payload(conn) -> {:ok, conn, payload}
         end
       end
+
+      defp upsert_session_client_credentials(conn, client, scopes, opts, upsert_opts \\ []) do
+        base_upsert_opts = [
+          token_transport: :bearer,
+          session_type: :oauth2,
+          access_claim_overrides: %{"cid" => client.id, "scope" => scopes},
+          refresh_claim_overrides: nil,
+          subject_override: client.id
+        ]
+
+        [conn, opts.config, base_upsert_opts ++ upsert_opts]
+        |> opts.mod_conf.customize_session_upsert_args.()
+        |> then(&apply(SessionPlugs, :upsert_session, &1))
+      end
+
+      defp send_token_response_client_credentials(conn, scopes, now, opts) do
+        tokens = conn |> Utils.get_tokens()
+
+        resp_body = %{
+          access_token: tokens.access_token,
+          expires_in: tokens.access_token_exp - now,
+          scope: scopes |> Enum.join(" "),
+          token_type: "bearer"
+        }
+
+        json(conn, 200, resp_body, opts)
+      end
+
 
       defp upsert_session(conn, authorization, scopes, opts, upsert_opts \\ []) do
         %{client_id: cid} = authorization
