@@ -880,32 +880,71 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
     test "valid request returns valid token", %{client: client, opts: opts} do
       basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
 
-      conn(:post, "/", %{
-        grant_type: "client_credentials"
-      })
+      conn(:post, "/", %{grant_type: "client_credentials"})
       |> put_req_header("authorization", basic_auth)
       |> TokenEndpoint.call(opts)
       |> assert_dont_cache()
       |> json_response(200)
+      |> then(fn body ->
+        assert %{
+                 "access_token" => <<_::binary>>,
+                 "expires_in" => 900,
+                 "refresh_expires_in" => 5_184_000,
+                 "refresh_token" => <<_::binary>>,
+                 "scope" => "read write",
+                 "token_type" => "bearer"
+               } = body
+      end)
     end
 
-    test "requires auth", %{opts: opts} do
+    test "requires auth", %{client: client, opts: opts} do
+      conn(:post, "/", %{grant_type: "client_credentials"})
+      |> TokenEndpoint.call(opts)
+      |> assert_dont_cache()
+      |> json_response(400)
+      |> then(fn body ->
+        assert %{"error_description" => "client_id: can't be blank"} = body
+      end)
+
+      conn(:post, "/", %{grant_type: "client_credentials", client_id: client.id})
+      |> TokenEndpoint.call(opts)
+      |> assert_dont_cache()
+      |> json_response(400)
+      |> then(fn body ->
+        assert %{"error_description" => "client_secret: can't be blank"} = body
+      end)
+
       conn(:post, "/", %{
-        grant_type: "client_credentials"
+        grant_type: "client_credentials",
+        client_id: client.id,
+        client_secret: "b"
       })
       |> TokenEndpoint.call(opts)
       |> assert_dont_cache()
       |> json_response(400)
+      |> then(fn body ->
+        assert %{"error_description" => "client_secret: does not match expected value"} = body
+      end)
     end
 
-    test "rejects unkown scopes", %{client: client, opts: opts} do
+    test "rejects unknown scopes", %{client: client, opts: opts} do
       basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
 
       body =
-        conn(:post, "/", %{
-          grant_type: "client_credentials",
-          scope: "acme"
-        })
+        conn(:post, "/", %{grant_type: "client_credentials", scope: "acme"})
+        |> put_req_header("authorization", basic_auth)
+        |> TokenEndpoint.call(opts)
+        |> assert_dont_cache()
+        |> json_response(400)
+
+      assert %{"error_description" => "scope: user authorized read, write"} = body
+    end
+
+    test "rejects known but not-enabled-for-client scopes", %{client: client, opts: opts} do
+      basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
+
+      body =
+        conn(:post, "/", %{grant_type: "client_credentials", scope: "party"})
         |> put_req_header("authorization", basic_auth)
         |> TokenEndpoint.call(opts)
         |> assert_dont_cache()
@@ -941,9 +980,7 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       basic_auth = Plug.BasicAuth.encode_basic_auth(client.id, client.secret)
 
       body =
-        conn(:post, "/", %{
-          grant_type: "client_credentials"
-        })
+        conn(:post, "/", %{grant_type: "client_credentials"})
         |> put_req_header("authorization", basic_auth)
         |> TokenEndpoint.call(opts)
         |> assert_dont_cache()
