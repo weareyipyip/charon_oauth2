@@ -14,7 +14,7 @@ defmodule CharonOauth2.Models.ClientTest do
       })
 
     assert result.errors == [
-             client_type: {"Can not be public for client_credential clients", []}
+             grant_types: {"client_credentials is not allowed for public clients", []}
            ]
   end
 
