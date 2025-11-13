@@ -42,7 +42,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
       @app_scopes @mod_config.scopes |> :ordsets.from_list()
 
       @client_types ~w(confidential public)
-      @grant_types ~w(authorization_code refresh_token) |> :ordsets.from_list()
+      @grant_types ~w(authorization_code refresh_token client_credentials) |> :ordsets.from_list()
       @secret_bytesize 48
       @autogen_secret {Crypto, :random_url_encoded, [@secret_bytesize]}
 
@@ -96,6 +96,15 @@ defmodule CharonOauth2.Internal.GenMod.Client do
           @app_scopes,
           "must be subset of #{Enum.join(@app_scopes, ", ")}"
         )
+        |> then(fn cs ->
+          grant_types = get_field(cs, :grant_types) || []
+
+          if get_field(cs, :client_type) == "public" and "client_credentials" in grant_types do
+            add_error(cs, :grant_types, "client_credentials is not allowed for public clients")
+          else
+            cs
+          end
+        end)
         |> prepare_changes(fn
           cs = %{data: %{id: id, scope: current_scopes}, changes: %{scope: scopes}}
           when not is_nil(id) ->

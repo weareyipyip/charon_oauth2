@@ -128,6 +128,38 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
       # Private #
       ###########
 
+      defp process_grant(
+             cs = %{changes: %{grant_type: "client_credentials", client: client}},
+             conn,
+             opts
+           ) do
+        dummy_auth = %{scope: client.scope, client: client, client_id: client.owner_id}
+
+        with cs = %{valid?: true} <- Validate.client_credentials_flow(cs, dummy_auth) do
+          scopes = Map.get(cs.changes, :scope, dummy_auth.scope)
+
+          conn
+          |> upsert_session(dummy_auth, scopes, opts, user_id: client.id)
+          |> send_token_response(scopes, now(), opts, false)
+        else
+          invalid_cs ->
+            error_map = changeset_errors_to_map(invalid_cs)
+            descr = error_map |> cs_error_map_to_string()
+
+            error_map
+            |> case do
+              %{scope: ["user authorized " <> _]} ->
+                json_error(conn, 400, "invalid_scope", descr, opts)
+
+              %{grant_type: ["unsupported by client"]} ->
+                json_error(conn, 400, "unauthorized_client", descr, opts)
+
+              other ->
+                json_error(conn, 400, "invalid_request", descr, opts)
+            end
+        end
+      end
+
       defp process_grant(cs = %{changes: %{grant_type: "authorization_code"}}, conn, opts) do
         with cs = %{valid?: true, changes: %{code: code}} <-
                Validate.authorization_code_flow_step_1(cs),
@@ -143,7 +175,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
 
           conn
           |> upsert_session(authorization, scopes, opts, user_id: grant.resource_owner_id)
-          |> send_token_response(scopes, now, opts)
+          |> send_token_response(scopes, now, opts, true)
         else
           # https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
           # grant not found
@@ -196,10 +228,8 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
 
           conn
           |> upsert_session(authorization, scopes, opts)
-          |> send_token_response(scopes, now(), opts)
-        end
-        # this ugly crap instead of with-else is needed to keep dialyzer happy :|
-        |> case do
+          |> send_token_response(scopes, now(), opts, true)
+        else
           conn = %Plug.Conn{} ->
             conn
 
@@ -255,10 +285,13 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         |> then(&apply(SessionPlugs, :upsert_session, &1))
       end
 
-      defp send_token_response(conn, scopes, now, opts) do
-        tokens = conn |> Utils.get_tokens()
+      defp send_token_response(conn, scopes, now, opts, incl_refresh_token) do
+        resp_body = conn |> Utils.get_tokens() |> resp_body(scopes, now, incl_refresh_token)
+        json(conn, 200, resp_body, opts)
+      end
 
-        resp_body = %{
+      defp resp_body(tokens, scopes, now, _incl_refresh_token = true) do
+        %{
           access_token: tokens.access_token,
           expires_in: tokens.access_token_exp - now,
           refresh_expires_in: tokens.refresh_token_exp - now,
@@ -266,8 +299,15 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
           scope: scopes |> Enum.join(" "),
           token_type: "bearer"
         }
+      end
 
-        json(conn, 200, resp_body, opts)
+      defp resp_body(tokens, scopes, now, _) do
+        %{
+          access_token: tokens.access_token,
+          expires_in: tokens.access_token_exp - now,
+          scope: scopes |> Enum.join(" "),
+          token_type: "bearer"
+        }
       end
 
       defp add_cors_headers(conn) do

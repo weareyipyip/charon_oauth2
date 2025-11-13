@@ -23,7 +23,7 @@ defmodule CharonOauth2.Internal.TokenValidator do
     field :scope, SeparatedStringOrdset, pattern: [" ", ","]
   end
 
-  @grant_types ~w(authorization_code refresh_token)
+  @grant_types ~w(authorization_code refresh_token client_credentials)
 
   @doc """
   All parameters must pass type validation or return an "invalid_request" response.
@@ -117,6 +117,19 @@ defmodule CharonOauth2.Internal.TokenValidator do
     |> validate_redirect_uri(grant)
     |> validate_pkce(grant)
     |> validate_scope(authorization)
+  end
+
+  @doc """
+  After authenticating the client, we validate that:
+   - the grant type is enabled for the client
+   - the requested scope is valid for the client
+
+  The "authorization" is a bit of a dummy (there's no user to authorize anything in the client_credentials flow),
+  and only represents configuration of the client itself (grant types, scopes).
+  """
+  @spec client_credentials_flow(Changeset.t(), map()) :: Changeset.t()
+  def client_credentials_flow(cs, authorization) do
+    cs |> validate_client_grant_type(authorization.client) |> validate_scope(authorization)
   end
 
   @doc """

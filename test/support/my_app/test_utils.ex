@@ -22,6 +22,7 @@ defmodule MyApp.TestUtils do
     resp_body
   end
 
+  @spec assert_status(any(), any()) :: any()
   def assert_status(conn, status, decoded_body \\ nil) do
     assert conn.status == status,
       message:
