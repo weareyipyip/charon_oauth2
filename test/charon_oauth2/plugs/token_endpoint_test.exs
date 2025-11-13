@@ -889,11 +889,11 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
         assert %{
                  "access_token" => <<_::binary>>,
                  "expires_in" => 900,
-                 "refresh_expires_in" => 5_184_000,
-                 "refresh_token" => <<_::binary>>,
                  "scope" => "read write",
                  "token_type" => "bearer"
                } = body
+
+        refute is_map_key(body, "refresh_token")
       end)
     end
 
