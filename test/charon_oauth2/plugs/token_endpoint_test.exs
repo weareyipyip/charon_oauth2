@@ -991,5 +991,20 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                "error_description" => "grant_type: unsupported by client"
              } = body
     end
+
+    # the oauth2 spec never returns cookies - Charon's cookie protections should be disabled
+    test "does not enforce cookies for browser clients", seeds do
+      basic_auth = Plug.BasicAuth.encode_basic_auth(seeds.client.id, seeds.client.secret)
+
+      conn(:post, "/", %{grant_type: "client_credentials"})
+      |> put_req_header("authorization", basic_auth)
+      |> put_req_header("sec-fetch-mode", "cors")
+      |> TokenEndpoint.call(seeds.opts)
+      |> assert_dont_cache()
+      |> json_response(200)
+      |> then(fn body ->
+        assert %{"access_token" => <<_::binary>>} = body
+      end)
+    end
   end
 end

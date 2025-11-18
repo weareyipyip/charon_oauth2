@@ -4,7 +4,7 @@ defmodule CharonOauth2.Types.Encrypted do
 
   Requires a column of type `:binary`.
   """
-  alias Charon.Utils.KeyGenerator
+  alias Charon.Utils.{KeyGenerator, PersistentTermCache}
   alias Charon.Internal.Crypto
   alias Ecto.ParameterizedType
   use ParameterizedType
@@ -37,5 +37,9 @@ defmodule CharonOauth2.Types.Encrypted do
   # Private #
   ###########
 
-  defp get_key(config), do: KeyGenerator.derive_key(config.get_base_secret.(), @salt)
+  defp get_key(config) do
+    PersistentTermCache.get_or_create(__MODULE__, fn ->
+      KeyGenerator.derive_key(config.get_base_secret.(), @salt, log: false)
+    end)
+  end
 end

@@ -8,12 +8,12 @@ defmodule CharonOauth2.Internal.Plug do
   Send a "redirect response", that is, a 200 OK response with JSON
   with a `redirect_to` value.
   """
-  @spec redirect(Conn.t(), String.t()) :: Conn.t()
-  def redirect(conn, to) do
+  @spec redirect(Conn.t(), String.t(), Charon.Config.t()) :: Conn.t()
+  def redirect(conn, to, config) do
     conn
     |> put_resp_content_type("application/json")
     |> dont_cache()
-    |> send_resp(200, Jason.encode!(%{redirect_to: to}))
+    |> send_resp(200, config.json_module.encode!(%{redirect_to: to}))
   end
 
   @doc """
@@ -28,33 +28,41 @@ defmodule CharonOauth2.Internal.Plug do
   @doc """
   Append `query_params` to `to` and then send a redirect response.
   """
-  @spec redirect_with_query(Conn.t(), binary | URI.t(), Enumerable.t()) :: Conn.t()
-  def redirect_with_query(conn, to, query_params) do
+  @spec redirect_with_query(Conn.t(), binary | URI.t(), Enumerable.t(), Charon.Config.t()) ::
+          Conn.t()
+  def redirect_with_query(conn, to, query_params, config) do
     query_params = query_params |> URI.encode_query()
-    to = to |> URI.new!() |> append_query(query_params) |> URI.to_string()
-    redirect(conn, to)
+    to = to |> URI.new!() |> URI.append_query(query_params) |> URI.to_string()
+    redirect(conn, to, config)
   end
 
   @doc """
   Send a "redirect error", instructing the user agent to redirect to the client.
   The redirect URI is grabbed from the changeset.
   """
-  @spec error_redirect(Conn.t(), Changeset.t(), binary, binary) :: Conn.t()
-  def error_redirect(conn, cs, error, descr) do
+  @spec error_redirect(Conn.t(), Changeset.t(), binary, binary, Charon.Config.t()) :: Conn.t()
+  def error_redirect(conn, cs, error, descr, config) do
     changes = cs.changes
     uri = changes.resolved_redir_uri
     state = changes[:state]
-    error_redirect(conn, uri, error, descr, state)
+    error_redirect(conn, uri, error, descr, state, config)
   end
 
   @doc """
   Send a "redirect error", instructing the user agent to redirect to the client.
   """
-  @spec error_redirect(Conn.t(), binary | URI.t(), String.t(), String.t(), String.t() | nil) ::
+  @spec error_redirect(
+          Conn.t(),
+          binary | URI.t(),
+          String.t(),
+          String.t(),
+          String.t() | nil,
+          Charon.Config.t()
+        ) ::
           Conn.t()
-  def error_redirect(conn, to, error, descr, state) do
+  def error_redirect(conn, to, error, descr, state, config) do
     query = %{error: error, error_description: descr} |> put_non_nil(:state, state)
-    redirect_with_query(conn, to, query)
+    redirect_with_query(conn, to, query, config)
   end
 
   @doc """
@@ -113,21 +121,4 @@ defmodule CharonOauth2.Internal.Plug do
   @spec put_non_nil(map, any, any) :: map
   def put_non_nil(map, _key, _value = nil), do: map
   def put_non_nil(map, key, value), do: Map.put(map, key, value)
-
-  ###########
-  # Private #
-  ###########
-
-  # nicked from Elixir 1.14, so that we can support 1.13
-  defp append_query(%URI{} = uri, query) when uri.query in [nil, ""] do
-    %{uri | query: query}
-  end
-
-  defp append_query(%URI{} = uri, query) do
-    if String.ends_with?(uri.query, "&") do
-      %{uri | query: uri.query <> query}
-    else
-      %{uri | query: uri.query <> "&" <> query}
-    end
-  end
 end

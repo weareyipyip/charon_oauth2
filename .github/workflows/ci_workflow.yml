@@ -12,28 +12,20 @@ jobs:
 
     services:
       postgres:
-        image: postgres:13-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_PASSWORD: supersecret
         ports:
           - 5432:5432
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
 
     strategy:
-      # https://hexdocs.pm/elixir/1.14/compatibility-and-deprecations.html#compatibility-between-elixir-and-erlang-otp
+      # https://hexdocs.pm/elixir/1.19/compatibility-and-deprecations.html#between-elixir-and-erlang-otp
       matrix:
-        elixir: [1.14.x, 1.17.x]
-        otp: [24.x, 25.x, 27.x]
-        exclude:
-          - elixir: 1.14.x
-            otp: 27.x
-          - elixir: 1.14.x
-            otp: 25.x
-          - elixir: 1.17.x
-            otp: 24.x
+        include:
+          - elixir: 1.16.x
+            otp: 26.x
+          - elixir: 1.19.x
+            otp: 28.x
 
     steps:
       - name: Checkout code
@@ -43,6 +35,7 @@ jobs:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
       - name: Cache deps
+        id: cache
         uses: actions/cache@v4
         with:
           path: |
@@ -52,12 +45,13 @@ jobs:
           restore-keys: |
             deps-cache-${{ matrix.elixir }}-${{ matrix.otp }}-
       - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run: mix do local.hex --force, local.rebar --force, deps.get
       - name: Check code formatting
         run: mix format --check-formatted
         # only check formatting on most recent Elixir version
         # to prevent failures because of formatter changes
-        if: matrix.elixir == '1.17.x'
+        if: matrix.elixir == '1.19.x'
       - name: Compile dependencies
         run: mix deps.compile
       - name: Compile code (warnings as errors)
