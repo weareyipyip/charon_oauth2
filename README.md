@@ -54,8 +54,8 @@ The package can be installed by adding `charon_oauth2` to your list of dependenc
 ```elixir
 def deps do
   [
-    {:charon, "~> 3.1"},
-    {:charon_oauth2, "~> 0.0"}
+    {:charon, "~> 4.0"},
+    {:charon_oauth2, "~> 1.0"}
   ]
 end
 ```

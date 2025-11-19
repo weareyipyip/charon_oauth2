@@ -5,7 +5,7 @@ defmodule CharonOauth2.MixProject do
     [
       app: :charon_oauth2,
       version: "0.0.0+development",
-      elixir: "~> 1.13",
+      elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
@@ -41,7 +41,7 @@ defmodule CharonOauth2.MixProject do
       {:ecto, "~> 3.5"},
       {:ecto_sql, "~> 3.0"},
       {:plug, "~> 1.11"},
-      {:charon, "~> 3.1"},
+      {:charon, "~> 4.0"},
       {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false},
       {:postgrex, ">= 0.0.0", only: [:dev, :test]},
       {:jason, "~> 1.4", only: [:dev, :test]},

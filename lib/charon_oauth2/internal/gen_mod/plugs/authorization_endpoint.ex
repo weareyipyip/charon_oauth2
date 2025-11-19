@@ -73,7 +73,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
                Validate.missing_invalid_or_malformed(cs, params),
              cs = %{valid?: true, changes: %{response_type: response_type}} <-
                Validate.other_checks(cs, params, client, scopes, opts) do
-          do_authorize(response_type, conn, cs)
+          do_authorize(response_type, conn, cs, config)
         else
           # on errors with the redirect_uri or the client_id, we don't redirect, as per the spec
           # we reply to the web client so that it may show an error to the user
@@ -82,7 +82,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
 
           {:invalid, cs} ->
             descr = cs |> changeset_errors_to_map() |> cs_error_map_to_string()
-            error_redirect(conn, cs, "invalid_request", descr)
+            error_redirect(conn, cs, "invalid_request", descr, config)
 
           cs ->
             error_map = changeset_errors_to_map(cs)
@@ -91,26 +91,26 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
             error_map
             |> case do
               %{response_type: ["is unsupported"]} ->
-                error_redirect(conn, cs, "unsupported_response_type", descr)
+                error_redirect(conn, cs, "unsupported_response_type", descr, config)
 
               %{response_type: ["not supported by client"]} ->
-                error_redirect(conn, cs, "unauthorized_client", descr)
+                error_redirect(conn, cs, "unauthorized_client", descr, config)
 
               %{permission_granted: ["no"]} ->
-                error_redirect(conn, cs, "access_denied", descr)
+                error_redirect(conn, cs, "access_denied", descr, config)
 
               %{permission_granted: errors} ->
                 resp = %{errors: %{permission_granted: errors}}
                 json(conn, 400, resp, opts)
 
               %{scope: ["known scopes are " <> scopes]} ->
-                error_redirect(conn, cs, "invalid_scope", descr)
+                error_redirect(conn, cs, "invalid_scope", descr, config)
 
               %{scope: ["client supports " <> scopes]} ->
-                error_redirect(conn, cs, "access_denied", descr)
+                error_redirect(conn, cs, "access_denied", descr, config)
 
               _other ->
-                error_redirect(conn, cs, "invalid_request", descr)
+                error_redirect(conn, cs, "invalid_request", descr, config)
             end
         end
       end
@@ -123,7 +123,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
       # Private #
       ###########
 
-      defp do_authorize("code", conn, req_params_cs = %{changes: req_params}) do
+      defp do_authorize("code", conn, req_params_cs = %{changes: req_params}, config) do
         with %{"sub" => uid} = Utils.get_bearer_token_payload(conn),
              {:ok, authorization} <- upsert_authorization(uid, req_params),
              grant_params =
@@ -136,11 +136,11 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.AuthorizationEndpoint do
                |> put_non_nil(:code_challenge, req_params[:code_challenge]),
              {:ok, grant} <- @grant_context.insert(grant_params) do
           query_params = %{code: grant.code} |> put_non_nil(:state, req_params[:state])
-          redirect_with_query(conn, req_params.resolved_redir_uri, query_params)
+          redirect_with_query(conn, req_params.resolved_redir_uri, query_params, config)
         else
           cs ->
             descr = cs |> changeset_errors_to_map() |> cs_error_map_to_string()
-            error_redirect(conn, req_params_cs, "invalid_request", descr)
+            error_redirect(conn, req_params_cs, "invalid_request", descr, config)
         end
       end
 

@@ -12,7 +12,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
 
       The client secret is stored encrypted, not hashed, which is unusual for passwords-like secrets.
       In line with, for example, GCP, we choose to be able to show the client secret again.
-      Also, the client secret is not a normal password but a 384 bits random string,
+      Also, the client secret is not a normal password but a 256 bits random string,
       which does not require key stretching to prevent brute forcing
       (although rate-limiting the token endpoint may still be desirable).
       """
@@ -43,7 +43,7 @@ defmodule CharonOauth2.Internal.GenMod.Client do
 
       @client_types ~w(confidential public)
       @grant_types ~w(authorization_code refresh_token client_credentials) |> :ordsets.from_list()
-      @secret_bytesize 48
+      @secret_bytesize 32
       @autogen_secret {Crypto, :random_url_encoded, [@secret_bytesize]}
 
       @primary_key {:id, Ecto.UUID, autogenerate: true}
