@@ -40,10 +40,9 @@ defmodule CharonOauth2 do
     |> verify_token_signature(charon_config)
     |> verify_token_exp_claim(nil)
     |> verify_token_nbf_claim(nil)
-    |> verify_token_claim_equals({"type", "refresh"})
-    |> verify_token_claim_equals({"styp", "oauth2"})
+    |> verify_token_claim_equals(%{"type" => "refresh", "styp" => "oauth2"})
     |> load_session(charon_config)
-    |> verify_token_fresh(10)
+    |> verify_token_fresh()
   end
 
   defmacro __using__(config) do

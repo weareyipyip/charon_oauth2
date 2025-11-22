@@ -3,7 +3,7 @@
 ```tsx
 import React from "react";
 
-import ApiService from "@apiService";
+import ApiClient from "@apiService";
 import { Oauth2Client } from "@types";
 import { useAppContext } from "@global/context";
 import { Button } from "@components/atoms/Button/Component";
@@ -40,24 +40,18 @@ export default function AuthorizeOauth2(): JSX.Element {
   ): Promise<void> => {
     const [
       {
-        data: {
-          data: { oauth2_client: client },
-        },
+        data: { oauth2_client: client },
       },
       {
-        data: {
-          data: { oauth2_authorizations: authorizations },
-        },
+        data: { oauth2_authorizations: authorizations },
       },
       {
-        data: {
-          data: { token_scopes: scopeDescriptions },
-        },
+        data: { token_scopes: scopeDescriptions },
       },
     ] = await Promise.all([
-      ApiService.oauth2Clients.show(clientId),
-      ApiService.my.oauth2Authorizations.list({ client_id: clientId }),
-      ApiService.tokenScopes.list(),
+      ApiClient.oauth2Clients.show(clientId),
+      ApiClient.my.oauth2Authorizations.list({ client_id: clientId }),
+      ApiClient.tokenScopes.list(),
     ]);
 
     // If specific scopes are requested, we'll use those. Otherwise, default to all client scopes.
@@ -83,7 +77,7 @@ export default function AuthorizeOauth2(): JSX.Element {
     try {
       const {
         data: { redirect_to: redirectTo },
-      } = await ApiService.oauth2.authorize({
+      } = await ApiClient.oauth2.authorize({
         ...params,
         permission_granted: grantPermission,
       });
