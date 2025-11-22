@@ -805,33 +805,26 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
     end
 
     test "works", seeds do
-      verify_token = fn conn, _config ->
-        conn
-        |> set_token_payload(%{"sub" => seeds.user.id, "cid" => seeds.client.id})
-        |> set_session(
-          %{
-            created_at: 1,
-            expires_at: 1,
-            id: 1,
-            refresh_expires_at: 1,
-            refresh_token_id: "b",
-            refreshed_at: 1,
-            user_id: seeds.user.id,
-            tokens_fresh_from: 0
-          }
-          |> Session.upgrade_version(@config)
-        )
-      end
-
-      config = override_opt_mod_conf(@config, CharonOauth2, verify_refresh_token: verify_token)
+      start_supervised!(Charon.SessionStore.LocalStore)
+      config = %{@config | session_store_module: Charon.SessionStore.LocalStore}
       opts = TokenEndpoint.init(config: config)
+
+      token =
+        Charon.SessionPlugs.upsert_session(conn(:get, "/"), config,
+          user_id: seeds.user.id,
+          token_transport: :bearer,
+          session_type: :oauth2,
+          refresh_claim_overrides: %{cid: seeds.client.id}
+        )
+        |> Charon.Utils.get_tokens()
+        |> Map.get(:refresh_token)
 
       assert %{"access_token" => _} =
                conn(:post, "/", %{
                  grant_type: "refresh_token",
                  client_id: seeds.client.id,
                  client_secret: seeds.client.secret,
-                 refresh_token: "test"
+                 refresh_token: token
                })
                |> TokenEndpoint.call(opts)
                |> assert_dont_cache()
