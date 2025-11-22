@@ -133,13 +133,13 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
              conn,
              opts
            ) do
-        dummy_auth = %{scope: client.scope, client: client, client_id: client.owner_id}
+        dummy_auth = %{scope: client.scope, client: client, client_id: client.id}
 
         with cs = %{valid?: true} <- Validate.client_credentials_flow(cs, dummy_auth) do
           scopes = Map.get(cs.changes, :scope, dummy_auth.scope)
 
           conn
-          |> upsert_session(dummy_auth, scopes, opts, user_id: client.id)
+          |> upsert_session(dummy_auth, scopes, opts, user_id: "client.#{client.id}")
           |> send_token_response(scopes, now(), opts, false)
         else
           invalid_cs ->

@@ -56,4 +56,15 @@ defmodule MyApp.TestUtils do
   def assert_dont_cache(conn) do
     assert_resp_headers(conn, %{"cache-control" => "no-store", "pragma" => "no-cache"})
   end
+
+  def peek_header(token), do: peek_token_part(token, 0)
+  def peek_payload(token), do: peek_token_part(token, 1)
+
+  defp peek_token_part(token, part) do
+    token
+    |> String.split(".")
+    |> Enum.at(part)
+    |> Base.url_decode64!(padding: false)
+    |> Jason.decode!()
+  end
 end

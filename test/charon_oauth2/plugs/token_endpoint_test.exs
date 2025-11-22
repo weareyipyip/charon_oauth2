@@ -887,13 +887,21 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       |> json_response(200)
       |> then(fn body ->
         assert %{
-                 "access_token" => <<_::binary>>,
+                 "access_token" => token,
                  "expires_in" => 900,
                  "scope" => "read write",
                  "token_type" => "bearer"
                } = body
 
         refute is_map_key(body, "refresh_token")
+
+        # Verify token payload
+        payload = peek_payload(token)
+        assert payload["sub"] == "client.#{client.id}"
+        assert payload["cid"] == client.id
+        assert payload["styp"] == "oauth2"
+        assert payload["type"] == "access"
+        assert payload["scope"] == ["read", "write"]
       end)
     end
 
@@ -966,7 +974,15 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
         |> assert_dont_cache()
         |> json_response(200)
 
-      assert %{"scope" => "read"} = body
+      assert %{"scope" => "read", "access_token" => token} = body
+
+      # Verify token payload has limited scope
+      payload = peek_payload(token)
+      assert payload["sub"] == "client.#{client.id}"
+      assert payload["cid"] == client.id
+      assert payload["styp"] == "oauth2"
+      assert payload["type"] == "access"
+      assert payload["scope"] == ["read"]
     end
 
     test "is not supported for clients without the grant", %{owner: owner, opts: opts} do
@@ -1003,7 +1019,14 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
       |> assert_dont_cache()
       |> json_response(200)
       |> then(fn body ->
-        assert %{"access_token" => <<_::binary>>} = body
+        assert %{"access_token" => token} = body
+
+        # Verify token payload
+        payload = peek_payload(token)
+        assert payload["sub"] == "client.#{seeds.client.id}"
+        assert payload["cid"] == seeds.client.id
+        assert payload["styp"] == "oauth2"
+        assert payload["type"] == "access"
       end)
     end
   end
