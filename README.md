@@ -464,3 +464,9 @@ The generated context modules (`MyApp.CharonOauth2.Authorizations`, `MyApp.Charo
 
 If you wish to write tests that involve CharonOauth2 models, you can use the utility functions in
 `MyApp.CharonOauth2.TestSeeds` to insert test seeds.
+
+## Copyright and License
+
+Copyright (c) 2025, YipYip B.V.
+
+Charon source code is licensed under the [Apache-2.0 License](./LICENSE.md)
