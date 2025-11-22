@@ -123,6 +123,55 @@ defmodule CharonOauth2.Plugs.TokenEndpointTest do
                |> json_response(400)
     end
 
+    test "server-configured grant_types are enforced", seeds do
+      # Create a config that only supports authorization_code
+      config =
+        override_opt_mod_conf(@config, CharonOauth2, grant_types: ~w(authorization_code))
+
+      opts = TokenEndpoint.init(config: config)
+
+      # authorization_code should work
+      conn(:post, "/", %{
+        grant_type: "authorization_code",
+        code: seeds.grant.code,
+        client_id: seeds.client.id,
+        client_secret: seeds.client.secret,
+        redirect_uri: seeds.grant.redirect_uri
+      })
+      |> TokenEndpoint.call(opts)
+      |> assert_dont_cache()
+      |> json_response(200)
+
+      # refresh_token should be rejected even though client supports it
+      assert %{
+               "error" => "unsupported_grant_type",
+               "error_description" => "grant_type: server supports [authorization_code]"
+             } ==
+               conn(:post, "/", %{
+                 grant_type: "refresh_token",
+                 client_id: seeds.client.id,
+                 client_secret: seeds.client.secret,
+                 refresh_token: "test"
+               })
+               |> TokenEndpoint.call(opts)
+               |> assert_dont_cache()
+               |> json_response(400)
+
+      # client_credentials should be rejected
+      assert %{
+               "error" => "unsupported_grant_type",
+               "error_description" => "grant_type: server supports [authorization_code]"
+             } ==
+               conn(:post, "/", %{
+                 grant_type: "client_credentials",
+                 client_id: seeds.client.id,
+                 client_secret: seeds.client.secret
+               })
+               |> TokenEndpoint.call(opts)
+               |> assert_dont_cache()
+               |> json_response(400)
+    end
+
     test "client_secret is not required for public clients", seeds do
       assert {:ok, _} = Clients.update(seeds.client, %{client_type: "public"})
 

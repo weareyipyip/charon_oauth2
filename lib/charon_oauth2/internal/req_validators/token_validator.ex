@@ -23,8 +23,6 @@ defmodule CharonOauth2.Internal.TokenValidator do
     field :scope, SeparatedStringOrdset, pattern: [" ", ","]
   end
 
-  @grant_types ~w(authorization_code refresh_token client_credentials)
-
   @doc """
   All parameters must pass type validation or return an "invalid_request" response.
   """
@@ -48,17 +46,20 @@ defmodule CharonOauth2.Internal.TokenValidator do
   @doc """
   Grant type must be specified and results in a separate "unsupported_grant_type" error
   if the server doesn't support it.
+
+  The `configured_grant_types` parameter should be the list of grant types that the server
+  is configured to support (from the config).
   """
-  @spec grant_type(Changeset.t()) :: Changeset.t()
-  def grant_type(cs = %{valid?: true}) do
+  @spec grant_type(Changeset.t(), [String.t()]) :: Changeset.t()
+  def grant_type(cs = %{valid?: true}, configured_grant_types) do
     cs
     |> validate_required([:grant_type])
-    |> validate_inclusion(:grant_type, @grant_types,
-      message: "server supports [#{Enum.join(@grant_types, ", ")}]"
+    |> validate_inclusion(:grant_type, configured_grant_types,
+      message: "server supports [#{Enum.join(configured_grant_types, ", ")}]"
     )
   end
 
-  def grant_type(cs), do: cs
+  def grant_type(cs, _), do: cs
 
   @doc """
   We authenticate the client.

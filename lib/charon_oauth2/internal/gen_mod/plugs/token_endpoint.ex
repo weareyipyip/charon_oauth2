@@ -86,7 +86,7 @@ defmodule CharonOauth2.Internal.GenMod.Plugs.TokenEndpoint do
         with cs = %{valid?: true} <-
                params
                |> Validate.cast_params()
-               |> Validate.grant_type()
+               |> Validate.grant_type(opts.mod_conf.grant_types)
                |> Validate.authenticate_client(@client_context) do
           process_grant(cs, conn, opts)
         else

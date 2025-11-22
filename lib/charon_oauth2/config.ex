@@ -38,13 +38,14 @@ defmodule CharonOauth2.Config do
    - `:customize_session_upsert_args` a function that you can use to customize the arguments that are passed by your `MyApp.TokenEndpoint` to `Charon.SessionPlugs.upsert_session/3`. Be careful, usually you might want to add to these arguments, but not override them.
    - `:enforce_pkce` for `:public`, `:all` or `:no` clients
    - `:grant_ttl` time in seconds that a grant (mostly authorization code) takes to expire
+   - `:grant_types` the grant types that the server supports
    - `:grants_table` (compile-time) the name of the table in which to store grants
    - `:repo` (required, compile-time) the Ecto repo module of your application.
    - `:resource_owner_id_column` (compile-time) the column name, as an atom, of the resource owner's schema's primary key
    - `:resource_owner_id_type` (compile-time) the type, as an atom, of the resource owner's schema's primary key
    - `:resource_owner_schema` (required, compile-time) the user schema module of your application.
    - `:resource_owner_table` (compile-time) the name of the table in resource owners are stored. Taken from `:resource_owner_schema` unless set.
-   - `:scopes` (required, compile time) the scopes that are available to Oauth2 apps, application-wide.
+   - `:scopes` (required, compile time) the scopes that are available to Oauth2 apps, application-wide. Be aware that tightening this set of scopes at a later moment may break existing clients.
    - `:test_seed_defaults` override default values for test models used in `CharonOauth2.TestSeeds`.
    - `:verify_refresh_token` a function that you can use to verify an Oauth2 refresh token for the refresh token grant.
 
@@ -58,9 +59,10 @@ defmodule CharonOauth2.Config do
     clients_table: "charon_oauth2_clients",
     customize_session_upsert_args: &Function.identity/1,
     enforce_pkce: :all,
-    grants_table: "charon_oauth2_grants",
     # ten minutes
     grant_ttl: 10 * 60,
+    grant_types: ~w(authorization_code refresh_token client_credentials),
+    grants_table: "charon_oauth2_grants",
     resource_owner_id_column: :id,
     resource_owner_id_type: :bigserial,
     resource_owner_table: nil,
@@ -74,6 +76,7 @@ defmodule CharonOauth2.Config do
           customize_session_upsert_args: ([...] -> [...]),
           enforce_pkce: :no | :public | :all,
           grant_ttl: pos_integer(),
+          grant_types: [String.t()],
           grants_table: String.t(),
           repo: module(),
           resource_owner_id_column: atom(),
